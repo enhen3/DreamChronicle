@@ -56,7 +56,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://dream-interpreter.lovable.app',
-        'X-Title': '周公解梦',
+        'X-Title': 'Dream Interpreter',
       },
       body: JSON.stringify({
         model: 'deepseek/deepseek-chat-v3-0324',
