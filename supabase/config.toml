@@ -1,1 +1,4 @@
 project_id = "ypvngooxhywipuzqpiev"
+
+[functions.interpret-dream]
+verify_jwt = false
