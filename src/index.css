@@ -8,92 +8,95 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 150 50% 98%;
-    --foreground: 160 20% 20%;
+    /* 苹果风格深邃夜空主题 - 精致神秘色调 */
+    --background: 260 25% 6%;
+    --foreground: 270 10% 96%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 160 20% 20%;
+    --card: 260 20% 9%;
+    --card-foreground: 270 10% 96%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 160 20% 20%;
+    --popover: 260 20% 9%;
+    --popover-foreground: 270 10% 96%;
 
-    --primary: 154 96% 39%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 270 75% 68%;
+    --primary-foreground: 260 25% 8%;
 
-    --secondary: 154 60% 92%;
-    --secondary-foreground: 160 20% 20%;
+    --secondary: 260 25% 12%;
+    --secondary-foreground: 270 10% 96%;
 
-    --muted: 150 40% 96%;
-    --muted-foreground: 160 10% 50%;
+    --muted: 260 20% 11%;
+    --muted-foreground: 270 8% 70%;
 
-    --accent: 154 80% 85%;
-    --accent-foreground: 160 20% 20%;
+    --accent: 280 55% 60%;
+    --accent-foreground: 270 10% 96%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 270 10% 96%;
 
-    --border: 150 30% 90%;
-    --input: 150 30% 95%;
-    --ring: 154 96% 39%;
+    --border: 260 25% 15%;
+    --input: 260 20% 10%;
+    --ring: 270 75% 68%;
 
-    --radius: 1rem;
+    --radius: 1.5rem;
     
-    --gradient-dream: linear-gradient(135deg, hsl(154 96% 96%), hsl(200 80% 96%));
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(154 60% 99%));
-    --shadow-soft: 0 4px 24px -4px hsl(154 60% 70% / 0.15);
-    --shadow-card: 0 8px 32px -8px hsl(154 60% 50% / 0.2);
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --gradient-dream: linear-gradient(135deg, hsl(260 25% 6%), hsl(280 30% 8%));
+    --gradient-card: linear-gradient(180deg, hsl(260 20% 9%), hsl(270 22% 10%));
+    --shadow-soft: 0 8px 32px -4px hsl(0 0% 0% / 0.4);
+    --shadow-card: 0 16px 48px -8px hsl(0 0% 0% / 0.6);
+    --shadow-glow: 0 0 0 1px hsl(270 75% 68% / 0.1), 0 8px 32px -4px hsl(270 75% 68% / 0.2);
+    --transition-smooth: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 260 30% 10%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-foreground: 270 20% 92%;
 
-    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary: 270 80% 65%;
 
-    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-primary-foreground: 260 30% 8%;
 
-    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent: 260 30% 16%;
 
-    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-accent-foreground: 270 20% 92%;
 
-    --sidebar-border: 220 13% 91%;
+    --sidebar-border: 260 30% 20%;
 
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 270 80% 65%;
   }
 
   .dark {
-    --background: 160 20% 12%;
-    --foreground: 150 50% 95%;
+    /* 暗色模式保持一致的神秘夜色主题 */
+    --background: 260 30% 8%;
+    --foreground: 270 20% 92%;
 
-    --card: 160 20% 15%;
-    --card-foreground: 150 50% 95%;
+    --card: 260 25% 12%;
+    --card-foreground: 270 20% 92%;
 
-    --popover: 160 20% 15%;
-    --popover-foreground: 150 50% 95%;
+    --popover: 260 25% 12%;
+    --popover-foreground: 270 20% 92%;
 
-    --primary: 154 96% 45%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 270 80% 65%;
+    --primary-foreground: 260 30% 8%;
 
-    --secondary: 160 20% 20%;
-    --secondary-foreground: 150 50% 95%;
+    --secondary: 260 30% 16%;
+    --secondary-foreground: 270 20% 92%;
 
-    --muted: 160 20% 20%;
-    --muted-foreground: 150 20% 70%;
+    --muted: 260 25% 14%;
+    --muted-foreground: 270 15% 65%;
 
-    --accent: 160 20% 25%;
-    --accent-foreground: 150 50% 95%;
+    --accent: 280 60% 55%;
+    --accent-foreground: 270 20% 92%;
 
-    --destructive: 0 62.8% 50%;
-    --destructive-foreground: 150 50% 95%;
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 270 20% 92%;
 
-    --border: 160 20% 25%;
-    --input: 160 20% 20%;
-    --ring: 154 96% 45%;
+    --border: 260 30% 20%;
+    --input: 260 25% 14%;
+    --ring: 270 80% 65%;
     
-    --gradient-dream: linear-gradient(135deg, hsl(160 20% 12%), hsl(200 30% 15%));
-    --gradient-card: linear-gradient(180deg, hsl(160 20% 15%), hsl(160 20% 18%));
-    --shadow-soft: 0 4px 24px -4px hsl(0 0% 0% / 0.3);
-    --shadow-card: 0 8px 32px -8px hsl(0 0% 0% / 0.4);
+    --gradient-dream: linear-gradient(135deg, hsl(260 30% 8%), hsl(280 40% 12%));
+    --gradient-card: linear-gradient(180deg, hsl(260 25% 12%), hsl(270 30% 14%));
+    --shadow-soft: 0 4px 24px -4px hsl(270 80% 20% / 0.3);
+    --shadow-card: 0 8px 32px -8px hsl(270 80% 10% / 0.5);
   }
 }
 
@@ -104,5 +107,272 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "kern" 1, "liga" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  p {
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer utilities {
+  /* 苹果风格精致神秘背景 */
+  .mystical-background {
+    position: relative;
+    background: 
+      radial-gradient(ellipse 1200px 800px at 15% 25%, rgba(139, 92, 246, 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 1000px 900px at 85% 75%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 800px 600px at 50% 50%, rgba(167, 139, 250, 0.04) 0%, transparent 70%),
+      linear-gradient(135deg, hsl(260 25% 6%) 0%, hsl(280 28% 7%) 50%, hsl(260 25% 6%) 100%);
+  }
+
+  /* 精致的网格纹理 - 更微妙 */
+  .mystical-background::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(139, 92, 246, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(139, 92, 246, 0.02) 1px, transparent 1px);
+    background-size: 120px 120px;
+    background-position: 0 0, 0 0;
+    pointer-events: none;
+    opacity: 0.3;
+    mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, black 30%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, black 30%, transparent 100%);
+  }
+
+  /* 动态光晕层 - 更流畅 */
+  .mystical-background::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 900px 700px at 20% 20%, rgba(196, 181, 253, 0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 800px 900px at 80% 80%, rgba(167, 139, 250, 0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 600px 500px at 50% 10%, rgba(139, 92, 246, 0.04) 0%, transparent 60%);
+    pointer-events: none;
+    animation: mystical-glow 30s ease-in-out infinite;
+  }
+
+  @keyframes mystical-glow {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.85;
+      transform: scale(1.01);
+    }
+  }
+
+  /* 精致光晕球体效果 */
+  .mystical-orbs {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .mystical-orbs::before,
+  .mystical-orbs::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.08;
+    animation: float 35s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .mystical-orbs::before {
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(196, 181, 253, 0.6) 0%, rgba(139, 92, 246, 0.3) 35%, transparent 65%);
+    top: -300px;
+    left: -300px;
+    animation-delay: 0s;
+  }
+
+  .mystical-orbs::after {
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle, rgba(167, 139, 250, 0.5) 0%, rgba(99, 102, 241, 0.3) 35%, transparent 65%);
+    bottom: -250px;
+    right: -250px;
+    animation-delay: 10s;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translate(0, 0) scale(1);
+    }
+    25% {
+      transform: translate(50px, -50px) scale(1.1);
+    }
+    50% {
+      transform: translate(-40px, 40px) scale(0.95);
+    }
+    75% {
+      transform: translate(30px, 30px) scale(1.05);
+    }
+  }
+
+  /* 苹果风格玻璃态卡片 */
+  .glass-card {
+    background: rgba(38, 37, 50, 0.6);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(196, 181, 253, 0.08);
+    box-shadow: 
+      0 8px 32px -4px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-card-hover {
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .glass-card-hover:hover {
+    background: rgba(42, 41, 55, 0.7);
+    border-color: rgba(196, 181, 253, 0.12);
+    transform: translateY(-2px);
+    box-shadow: 
+      0 12px 40px -4px rgba(0, 0, 0, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  /* 精致按钮效果 */
+  .btn-primary-elegant {
+    background: linear-gradient(135deg, hsl(270 75% 68%), hsl(280 65% 65%));
+    box-shadow: 
+      0 4px 16px -4px rgba(196, 181, 253, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .btn-primary-elegant:hover {
+    background: linear-gradient(135deg, hsl(270 75% 72%), hsl(280 65% 69%));
+    box-shadow: 
+      0 6px 20px -4px rgba(196, 181, 253, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary-elegant:active {
+    transform: translateY(0);
+    box-shadow: 
+      0 2px 8px -2px rgba(196, 181, 253, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* 中心花瓣/水波可视化 */
+  .mood-visualizer-svg {
+    width: min(16vw, 130px);
+    height: auto;
+    display: block;
+    filter: drop-shadow(0 12px 40px rgba(0,0,0,0.35));
+    animation: mood-breathe 6s ease-in-out infinite;
+  }
+
+  .mood-visualizer-rotate {
+    animation: mood-rotate 18s linear infinite;
+    transform-origin: 50px 50px;
+  }
+
+  @keyframes mood-breathe {
+    0%, 100% { transform: translateZ(0) scale(1); }
+    50% { transform: translateZ(0) scale(1.015); }
+  }
+
+  @keyframes mood-rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* 动态流动背景（类似水流效果） */
+  .mood-fluid-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    will-change: background-position, background-size, transform, opacity;
+    animation: mood-flow 12s ease-in-out infinite alternate;
+    background-repeat: no-repeat;
+    /* 由页面注入的变量控制色彩 */
+    /* --mood-1, --mood-2, --mood-3 需在元素上设置 */
+    background-image:
+      radial-gradient(40% 55% at 20% 35%, var(--mood-1, rgba(139,92,246,0.16)) 0%, transparent 70%),
+      radial-gradient(50% 60% at 80% 70%, var(--mood-2, rgba(139,92,246,0.10)) 0%, transparent 70%),
+      radial-gradient(35% 45% at 50% 55%, var(--mood-3, rgba(139,92,246,0.08)) 0%, transparent 75%);
+    background-size: 140% 140%, 130% 130%, 150% 150%;
+    background-position: 0% 0%, 100% 100%, 50% 50%;
+    filter: saturate(140%);
+    opacity: 0.85;
+  }
+
+  @keyframes mood-flow {
+    0% {
+      background-size: 140% 140%, 130% 130%, 150% 150%;
+      background-position: 0% 0%, 100% 100%, 50% 50%;
+      transform: translate3d(0,0,0) scale(1);
+    }
+    25% {
+      background-size: 155% 145%, 135% 150%, 165% 160%;
+      background-position: 12% 6%, 88% 82%, 46% 60%;
+      transform: translate3d(0,-0.6%,0) scale(1.012);
+    }
+    50% {
+      background-size: 148% 160%, 155% 140%, 170% 150%;
+      background-position: -10% 10%, 108% 88%, 58% 42%;
+      transform: translate3d(0.3%,0.3%,0) scale(1.01);
+    }
+    75% {
+      background-size: 160% 150%, 140% 155%, 175% 165%;
+      background-position: 8% -6%, 94% 95%, 52% 55%;
+      transform: translate3d(-0.25%,0,0) scale(1.015);
+    }
+    100% {
+      background-size: 145% 145%, 135% 135%, 160% 155%;
+      background-position: 4% -2%, 98% 92%, 50% 52%;
+      transform: translate3d(-0.15%,0,0) scale(1.008);
+    }
+  }
+
+  /* 第二层更快的水流动画，叠加增强动感 */
+  .mood-fluid-layer--alt {
+    animation: mood-flow-2 10s cubic-bezier(0.37, 0, 0.63, 1) infinite alternate-reverse;
+    opacity: 0.6;
+    background-size: 160% 160%, 150% 150%, 170% 170%;
+    filter: saturate(150%);
+  }
+
+  @keyframes mood-flow-2 {
+    0% {
+      background-position: 5% 5%, 95% 95%, 48% 48%;
+      transform: translate3d(0,0,0) scale(1);
+    }
+    40% {
+      background-position: 14% -6%, 86% 88%, 56% 60%;
+      transform: translate3d(0.4%, -0.2%, 0) scale(1.012);
+    }
+    70% {
+      background-position: -8% 12%, 108% 90%, 44% 38%;
+      transform: translate3d(-0.3%, 0.3%, 0) scale(1.008);
+    }
+    100% {
+      background-position: 6% -4%, 96% 92%, 50% 52%;
+      transform: translate3d(-0.2%, 0, 0) scale(1.01);
+    }
   }
 }

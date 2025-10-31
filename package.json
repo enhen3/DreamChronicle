@@ -1,5 +1,6 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "dream-chronicle",
+  "description": "夜梦录 DreamChronicle：记录、解读、洞见梦境的现代解梦应用",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -49,6 +50,7 @@
     "input-otp": "^1.4.2",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
+    "ogl": "0.0.105",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
