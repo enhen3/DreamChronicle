@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import LiquidChrome from "@/components/backgrounds/LiquidChrome";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,17 +21,12 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <div className="relative min-h-screen overflow-hidden">
-          <div className="absolute inset-0 -z-10">
-            <LiquidChrome baseColor={[0.08, 0.09, 0.12]} speed={0.6} amplitude={0.45} interactive={true} />
-          </div>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </div>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
   );

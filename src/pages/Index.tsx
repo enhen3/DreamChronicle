@@ -13,8 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
-import { Slider } from "@/components/ui/slider";
-import MoodVisualizer from "@/components/MoodVisualizer";
+import LiquidChrome from "@/components/backgrounds/LiquidChrome";
 
 interface DreamHistory {
   id: string;
@@ -277,6 +276,24 @@ const hexToRgba = (hex: string, alpha: number): string => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
+// Hex 颜色转 RGB 数组 (0-1范围，用于WebGL)
+// 根据情绪调整颜色强度，使背景效果更明显
+const hexToRgbArray = (hex: string, moodValue: number): [number, number, number] => {
+  const value = hex.replace('#', '');
+  const bigint = parseInt(value.length === 3 ? value.split('').map(c => c + c).join('') : value, 16);
+  const r = ((bigint >> 16) & 255) / 255;
+  const g = ((bigint >> 8) & 255) / 255;
+  const b = (bigint & 255) / 255;
+  
+  // 根据情绪值调整亮度：极端情绪更明显，中性情绪较暗
+  // 情绪值在两端（接近0或100）时亮度更高，中间（50左右）较暗
+  const intensity = moodValue < 50 
+    ? 0.15 + (50 - moodValue) / 50 * 0.25  // 负面情绪：15%-40%
+    : 0.15 + (moodValue - 50) / 50 * 0.25;  // 正面情绪：15%-40%
+  
+  return [r * intensity, g * intensity, b * intensity];
+};
+
 // 获取心情颜色的渐变
 const getMoodGradient = (value: number, iconName?: string): string => {
   const mood = getMoodFromValue(value, iconName);
@@ -290,6 +307,86 @@ const getMoodColor = (value: number, iconName?: string): string => {
 };
 
 // 格式化解读文本，去除 Markdown 格式并改善排版
+// 情绪检测函数：分析文本中的情绪关键词，返回情绪值（0-100）
+const detectEmotionFromText = (text: string): number => {
+  if (!text || text.trim().length === 0) {
+    return 50; // 默认中性
+  }
+
+  const normalizedText = text.toLowerCase();
+  
+  // 正面情绪关键词（权重不同）
+  const positiveKeywords = {
+    // 极度愉悦（90-100）
+    extreme: ['兴奋', '狂喜', '欣喜若狂', '极度开心', '非常开心', '超级开心', '太棒了', '完美', '超棒', '太开心了', '开心极了', '非常兴奋'],
+    // 非常开心（80-90）
+    veryHappy: ['开心', '愉快', '快乐', '高兴', '喜悦', '欢乐', '兴奋', '轻松', '舒适', '满足', '幸福', '美好', '美妙', '很棒', '太好了', '真棒'],
+    // 轻松愉快（70-80）
+    relaxed: ['平静', '安详', '宁静', '放松', '舒缓', '温和', '温柔', '平和', '和谐', '舒适', '惬意', '悠闲'],
+    // 轻微正面（60-70）
+    mildPositive: ['还可以', '不错', '挺好', '还行', '一般', '正常'],
+  };
+
+  // 负面情绪关键词（权重不同）
+  const negativeKeywords = {
+    // 极度恐惧（0-10）
+    extreme: ['极度恐惧', '极度害怕', '极度恐慌', '极度恐惧', '恐怖', '吓死', '超级害怕', '非常恐惧', '极度恐怖'],
+    // 恐惧害怕（10-20）
+    fear: ['害怕', '恐惧', '惊恐', '恐慌', '吓人', '恐怖', '畏惧', '胆怯', '惊慌', '紧张', '不安', '焦虑', '担心', '忧虑'],
+    // 悲伤难过（30-50）
+    sadness: ['悲伤', '难过', '伤心', '痛苦', '沮丧', '失望', '绝望', '哭泣', '流泪', '痛苦', '难受', '郁闷', '消沉', '低落'],
+    // 困惑不安（40-50）
+    confusion: ['困惑', '疑惑', '不解', '迷茫', '不安', '烦躁', '困扰', '烦恼', '纠结', '郁闷'],
+  };
+
+  let positiveScore = 0;
+  let negativeScore = 0;
+
+  // 计算正面情绪分数
+  positiveKeywords.extreme.forEach(keyword => {
+    if (normalizedText.includes(keyword)) positiveScore += 5;
+  });
+  positiveKeywords.veryHappy.forEach(keyword => {
+    if (normalizedText.includes(keyword)) positiveScore += 3;
+  });
+  positiveKeywords.relaxed.forEach(keyword => {
+    if (normalizedText.includes(keyword)) positiveScore += 2;
+  });
+  positiveKeywords.mildPositive.forEach(keyword => {
+    if (normalizedText.includes(keyword)) positiveScore += 1;
+  });
+
+  // 计算负面情绪分数
+  negativeKeywords.extreme.forEach(keyword => {
+    if (normalizedText.includes(keyword)) negativeScore += 5;
+  });
+  negativeKeywords.fear.forEach(keyword => {
+    if (normalizedText.includes(keyword)) negativeScore += 3;
+  });
+  negativeKeywords.sadness.forEach(keyword => {
+    if (normalizedText.includes(keyword)) negativeScore += 3;
+  });
+  negativeKeywords.confusion.forEach(keyword => {
+    if (normalizedText.includes(keyword)) negativeScore += 2;
+  });
+
+  // 计算最终情绪值
+  const baseMood = 50; // 中性基准值
+  let moodValue = baseMood;
+
+  if (positiveScore > negativeScore) {
+    // 正面情绪占主导
+    const scoreDiff = positiveScore - negativeScore;
+    moodValue = Math.min(100, baseMood + scoreDiff * 5);
+  } else if (negativeScore > positiveScore) {
+    // 负面情绪占主导
+    const scoreDiff = negativeScore - positiveScore;
+    moodValue = Math.max(0, baseMood - scoreDiff * 5);
+  }
+
+  return Math.round(moodValue);
+};
+
 const formatInterpretation = (text: string): { sections: { title?: string; content: string }[] } => {
   if (!text) return { sections: [] };
 
@@ -389,13 +486,29 @@ const formatInterpretation = (text: string): { sections: { title?: string; conte
 
 const Index = () => {
   const [dream, setDream] = useState("");
-  const [moodValue, setMoodValue] = useState<number[]>([50]); // 默认中性心情
-  const [selectedMoodIcon, setSelectedMoodIcon] = useState<string | undefined>(undefined); // 选中的图标
-  const [showIconPicker, setShowIconPicker] = useState(false); // 是否显示图标选择器
+  const [detectedMoodValue, setDetectedMoodValue] = useState<number>(50); // 自动检测的情绪值
+  const [selectedMoodIcon, setSelectedMoodIcon] = useState<string | undefined>(undefined); // 选中的图标（用于保存历史）
   const [interpretation, setInterpretation] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [history, setHistory] = useState<DreamHistory[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [pageBgColor, setPageBgColor] = useState<string>(""); // 页面背景颜色
+  const [liquidChromeColor, setLiquidChromeColor] = useState<[number, number, number]>([0.08, 0.09, 0.12]); // LiquidChrome背景颜色
+
+  // 当dream文本变化时，自动检测情绪
+  useEffect(() => {
+    const detected = detectEmotionFromText(dream);
+    setDetectedMoodValue(detected);
+    
+    // 根据检测到的情绪值更新页面背景颜色
+    const moodInfo = getMoodFromValue(detected);
+    const bgColor = moodInfo.color;
+    setPageBgColor(bgColor);
+    
+    // 更新LiquidChrome背景颜色
+    const rgbArray = hexToRgbArray(bgColor, detected);
+    setLiquidChromeColor(rgbArray);
+  }, [dream]);
 
   useEffect(() => {
     const saved = localStorage.getItem("dreamHistory");
@@ -520,13 +633,13 @@ const Index = () => {
     }
   };
 
-  const saveToHistory = (dream: string, moodValue: number, interpretation: string, iconName?: string) => {
-    const moodInfo = getMoodFromValue(moodValue, iconName);
+  const saveToHistory = (dream: string, interpretation: string) => {
+    const moodInfo = getMoodFromValue(detectedMoodValue, selectedMoodIcon);
     const newEntry: DreamHistory = {
       id: Date.now().toString(),
       dream,
       mood: moodInfo.label,
-      moodValue,
+      moodValue: detectedMoodValue,
       moodColor: moodInfo.color,
       moodIcon: moodInfo.icon,
       interpretation,
@@ -538,10 +651,10 @@ const Index = () => {
   };
 
   const handleSubmit = async () => {
-    if (!dream.trim() || moodValue[0] === undefined) {
+    if (!dream.trim()) {
       toast({
         title: "请填写完整信息",
-        description: "请输入您的梦境并选择心情",
+        description: "请输入您的梦境",
         variant: "destructive",
       });
       return;
@@ -551,7 +664,7 @@ const Index = () => {
     setInterpretation("");
 
     try {
-      const moodInfo = getMoodFromValue(moodValue[0], selectedMoodIcon);
+      const moodInfo = getMoodFromValue(detectedMoodValue, selectedMoodIcon);
       const { data, error } = await supabase.functions.invoke("interpret-dream", {
         body: { dream: dream.trim(), mood: moodInfo.label },
       });
@@ -560,7 +673,7 @@ const Index = () => {
 
       if (data.interpretation) {
         setInterpretation(data.interpretation);
-        saveToHistory(dream, moodValue[0], data.interpretation, selectedMoodIcon);
+        saveToHistory(dream, data.interpretation);
         toast({
           title: "解梦完成",
           description: "已为您生成梦境解读",
@@ -583,16 +696,17 @@ const Index = () => {
 
   const handleReset = () => {
     setDream("");
-    setMoodValue([50]);
+    setDetectedMoodValue(50);
     setSelectedMoodIcon(undefined);
-    setShowIconPicker(false);
     setInterpretation("");
+    setPageBgColor("");
+    setLiquidChromeColor([0.08, 0.09, 0.12]); // 重置为默认颜色
   };
 
-  // 当前心情信息
+  // 当前心情信息（基于自动检测的情绪值）
   const currentMood = useMemo(() => {
-    return getMoodFromValue(moodValue[0], selectedMoodIcon);
-  }, [moodValue, selectedMoodIcon]);
+    return getMoodFromValue(detectedMoodValue, selectedMoodIcon);
+  }, [detectedMoodValue, selectedMoodIcon]);
 
   const deleteHistory = (id: string) => {
     const newHistory = history.filter((item) => item.id !== id);
@@ -613,7 +727,18 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen mystical-background relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden">
+      {/* LiquidChrome 动态背景 */}
+      <div className="absolute inset-0 -z-10">
+        <LiquidChrome 
+          baseColor={liquidChromeColor} 
+          speed={0.3} 
+          amplitude={0.45} 
+          frequencyX={3}
+          frequencyY={3}
+          interactive={true} 
+        />
+      </div>
 
       <div className="container mx-auto px-4 py-12 md:py-16 relative z-10">
         {/* Header */}
@@ -707,90 +832,8 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Right column: mood + dream + submit */}
+          {/* Right column: dream + submit */}
           <div className="flex-1 space-y-8">
-          {/* 先显示心情选择（合并为紧凑单卡片） */}
-                <div className="space-y-3">
-            <label className="sr-only">醒来后的心情</label>
-            <div className="rounded-2xl border border-white/8 bg-black/15 backdrop-blur-sm p-3">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowIconPicker(!showIconPicker)}
-                  className="flex items-center justify-center w-10 h-10 rounded-lg bg-black/25 border border-white/10 hover:border-primary/40 transition-all"
-                  title="选择图标"
-                >
-                  {(() => {
-                    const IconComponent = getIconComponent(currentMood.icon);
-                    return <IconComponent className="w-5 h-5 text-primary/70" />;
-                  })()}
-                </button>
-                <div className="min-w-0 flex-1">
-                  {/* 中心可视化（灵感源于苹果心情花瓣） */}
-                  <div className="flex items-center justify-center py-4">
-                    <MoodVisualizer value={moodValue[0]} color={currentMood.color} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-semibold tracking-tight truncate">{currentMood.label}</div>
-                    <div className="text-xs text-muted-foreground ml-3 shrink-0">{moodValue[0]}/100</div>
-                  </div>
-                  <div className="relative mt-2">
-                    <div
-                      className="absolute inset-0 h-4 rounded-full"
-                      style={{
-                        background: (() => {
-                          const percent = Math.max(0, Math.min(100, moodValue[0] ?? 0));
-                          const active = currentMood.color;
-                          const inactive = hexToRgba('#FFFFFF', 0.08);
-                          return `linear-gradient(to right, ${active} 0%, ${active} ${percent}%, ${inactive} ${percent}%, ${inactive} 100%)`;
-                        })()
-                      }}
-                    />
-                    <Slider
-                      value={moodValue}
-                      onValueChange={setMoodValue}
-                      min={0}
-                      max={100}
-                      step={1}
-                      disabled={isLoading}
-                      className="relative z-10 [&>div]:h-4 [&>div>div]:bg-transparent [&>div>div>div]:bg-transparent"
-                    />
-                    <div className="absolute -top-5 left-0 text-[11px] text-muted-foreground select-none">😨</div>
-                    <div className="absolute -top-5 right-0 text-[11px] text-muted-foreground select-none">😄</div>
-                  </div>
-                </div>
-                <div className="text-xl leading-none ml-1">{currentMood.emoji}</div>
-              </div>
-              {showIconPicker && (
-                <div className="mt-3 p-3 rounded-xl bg-black/25 border border-white/8">
-                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2 font-medium">选择图标</div>
-                  <div className="grid grid-cols-6 gap-2 max-h-40 overflow-y-auto">
-                    {MOOD_ICONS.map((icon) => {
-                      const IconComponent = icon.component;
-                      const isSelected = currentMood.icon === icon.name;
-                      return (
-                        <button
-                          key={icon.name}
-                          type="button"
-                          onClick={() => {
-                            setSelectedMoodIcon(icon.name);
-                            setShowIconPicker(false);
-                          }}
-                          className={`flex flex-col items-center justify-center p-2 rounded-lg border transition-all ${
-                            isSelected ? 'border-primary bg-primary/10' : 'border-white/10 bg-black/20 hover:border-primary/30'
-                          }`}
-                          title={icon.name}
-                        >
-                          <IconComponent className={`w-4 h-4 mb-1 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
-                          <span className="text-[10px]">{icon.emoji}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
           {/* 梦境描述输入区 */}
           <div className="space-y-4">
             <label className="text-base font-medium flex items-center gap-2.5 tracking-tight">
@@ -882,7 +925,7 @@ const Index = () => {
                 {/* Submit Button */}
                 <Button
                   onClick={handleSubmit}
-            disabled={isLoading || !dream.trim() || moodValue[0] === undefined}
+            disabled={isLoading || !dream.trim()}
             className="w-full h-14 text-base font-medium btn-primary-elegant disabled:opacity-40 disabled:cursor-not-allowed tracking-tight"
                 >
                   {isLoading ? (

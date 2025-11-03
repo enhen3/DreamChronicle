@@ -21,6 +21,14 @@ export const LiquidChrome = ({
   ...props
 }: LiquidChromeProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const targetColorRef = useRef<Float32Array>(new Float32Array(baseColor));
+
+  // 当 baseColor 变化时，更新目标颜色
+  useEffect(() => {
+    targetColorRef.current[0] = baseColor[0];
+    targetColorRef.current[1] = baseColor[1];
+    targetColorRef.current[2] = baseColor[2];
+  }, [baseColor]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -55,7 +63,8 @@ export const LiquidChrome = ({
           vec2 fragCoord = uvCoord * uResolution.xy;
           vec2 uv = (2.0 * fragCoord - uResolution.xy) / min(uResolution.x, uResolution.y);
 
-          for (float i = 1.0; i < 10.0; i++){
+          // 性能优化：减少循环次数从10到7，保持大部分视觉效果
+          for (float i = 1.0; i < 7.0; i++){
               uv.x += uAmplitude / i * cos(i * uFrequencyX * uv.y + uTime + uMouse.x * 3.14159);
               uv.y += uAmplitude / i * cos(i * uFrequencyY * uv.x + uTime + uMouse.y * 3.14159);
           }
@@ -71,10 +80,14 @@ export const LiquidChrome = ({
       }
 
       void main() {
+          // 性能优化：减少采样点从9个到5个（十字形采样），保持抗锯齿效果但提升性能
           vec4 col = vec4(0.0);
           int samples = 0;
+          // 只采样中心点和上下左右四个点
           for (int i = -1; i <= 1; i++){
               for (int j = -1; j <= 1; j++){
+                  // 跳过角落的点，只保留十字形采样
+                  if (i != 0 && j != 0) continue;
                   vec2 offset = vec2(float(i), float(j)) * (1.0 / min(uResolution.x, uResolution.y));
                   col += renderImage(vUv + offset);
                   samples++;
@@ -103,7 +116,8 @@ export const LiquidChrome = ({
     const mesh = new Mesh(gl, { geometry, program });
 
     function resize() {
-      const scale = 1;
+      // 性能优化：降低渲染分辨率（0.8倍），减少像素计算量约36%，但保持视觉质量
+      const scale = 0.8;
       renderer.setSize(container.offsetWidth * scale, container.offsetHeight * scale);
       const resUniform = program.uniforms.uResolution.value as Float32Array;
       resUniform[0] = gl.canvas.width;
@@ -139,10 +153,39 @@ export const LiquidChrome = ({
       container.addEventListener('touchmove', handleTouchMove, { passive: true });
     }
 
+    // 存储当前颜色用于平滑过渡
+    const currentColor = new Float32Array(baseColor);
+    
+    // 帧率控制：限制在60fps，避免过度渲染
     let animationId = 0;
+    let lastFrameTime = 0;
+    const targetFPS = 60;
+    const frameInterval = 1000 / targetFPS;
+    
     function update(t: number) {
       animationId = requestAnimationFrame(update);
+      
+      // 帧率控制：只在需要时渲染
+      const now = performance.now();
+      if (now - lastFrameTime < frameInterval) {
+        return;
+      }
+      lastFrameTime = now;
+      
       program.uniforms.uTime.value = t * 0.001 * speed;
+      
+      // 优化：只在颜色变化明显时才更新uniform，减少GPU调用
+      const colorUniform = program.uniforms.uBaseColor.value as Float32Array;
+      let colorChanged = false;
+      for (let i = 0; i < 3; i++) {
+        const diff = targetColorRef.current[i] - currentColor[i];
+        if (Math.abs(diff) > 0.001) {
+          currentColor[i] += diff * 0.05; // 平滑过渡速度
+          colorUniform[i] = currentColor[i];
+          colorChanged = true;
+        }
+      }
+      
       renderer.render({ scene: mesh });
     }
     animationId = requestAnimationFrame(update);
@@ -161,7 +204,7 @@ export const LiquidChrome = ({
       }
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
-  }, [baseColor, speed, amplitude, frequencyX, frequencyY, interactive]);
+  }, [speed, amplitude, frequencyX, frequencyY, interactive]); // 移除 baseColor 依赖，因为我们用单独的 useEffect 处理
 
   return <div ref={containerRef} className="liquidChrome-container" {...props} />;
 };
