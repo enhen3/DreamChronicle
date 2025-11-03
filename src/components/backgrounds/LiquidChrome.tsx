@@ -34,6 +34,7 @@ export const LiquidChrome = ({
     if (!containerRef.current) return;
 
     const container = containerRef.current;
+    // 启用抗锯齿以提升视觉质量
     const renderer = new Renderer({ antialias: true });
     const gl = renderer.gl;
     gl.clearColor(1, 1, 1, 1);
@@ -63,16 +64,17 @@ export const LiquidChrome = ({
           vec2 fragCoord = uvCoord * uResolution.xy;
           vec2 uv = (2.0 * fragCoord - uResolution.xy) / min(uResolution.x, uResolution.y);
 
-          // 性能优化：减少循环次数从10到7，保持大部分视觉效果
-          for (float i = 1.0; i < 7.0; i++){
+          // 恢复循环次数到6次，保持接近原始效果的视觉质量
+          for (float i = 1.0; i < 6.0; i++){
               uv.x += uAmplitude / i * cos(i * uFrequencyX * uv.y + uTime + uMouse.x * 3.14159);
               uv.y += uAmplitude / i * cos(i * uFrequencyY * uv.x + uTime + uMouse.y * 3.14159);
           }
 
+          // 恢复鼠标交互的ripple效果，但降低强度以减少计算
           vec2 diff = (uvCoord - uMouse);
           float dist = length(diff);
           float falloff = exp(-dist * 20.0);
-          float ripple = sin(10.0 * dist - uTime * 2.0) * 0.03;
+          float ripple = sin(8.0 * dist - uTime * 1.5) * 0.02;
           uv += (diff / (dist + 0.0001)) * ripple * falloff;
 
           vec3 color = uBaseColor / abs(sin(uTime - uv.y - uv.x));
@@ -80,13 +82,12 @@ export const LiquidChrome = ({
       }
 
       void main() {
-          // 性能优化：减少采样点从9个到5个（十字形采样），保持抗锯齿效果但提升性能
+          // 使用轻量级采样（3x3简化为十字形5点采样），平衡性能与视觉质量
           vec4 col = vec4(0.0);
           int samples = 0;
-          // 只采样中心点和上下左右四个点
           for (int i = -1; i <= 1; i++){
               for (int j = -1; j <= 1; j++){
-                  // 跳过角落的点，只保留十字形采样
+                  // 只采样中心点和十字形4点，减少采样数量但保持抗锯齿
                   if (i != 0 && j != 0) continue;
                   vec2 offset = vec2(float(i), float(j)) * (1.0 / min(uResolution.x, uResolution.y));
                   col += renderImage(vUv + offset);
@@ -116,8 +117,8 @@ export const LiquidChrome = ({
     const mesh = new Mesh(gl, { geometry, program });
 
     function resize() {
-      // 性能优化：降低渲染分辨率（0.8倍），减少像素计算量约36%，但保持视觉质量
-      const scale = 0.8;
+      // 平衡性能与质量：渲染分辨率设为0.7倍
+      const scale = 0.7;
       renderer.setSize(container.offsetWidth * scale, container.offsetHeight * scale);
       const resUniform = program.uniforms.uResolution.value as Float32Array;
       resUniform[0] = gl.canvas.width;
@@ -156,16 +157,16 @@ export const LiquidChrome = ({
     // 存储当前颜色用于平滑过渡
     const currentColor = new Float32Array(baseColor);
     
-    // 帧率控制：限制在60fps，避免过度渲染
+    // 帧率控制：限制在45fps，平衡性能与流畅度
     let animationId = 0;
     let lastFrameTime = 0;
-    const targetFPS = 60;
+    const targetFPS = 45;
     const frameInterval = 1000 / targetFPS;
     
     function update(t: number) {
       animationId = requestAnimationFrame(update);
       
-      // 帧率控制：只在需要时渲染
+      // 帧率控制：限制在45fps，平衡性能与流畅度
       const now = performance.now();
       if (now - lastFrameTime < frameInterval) {
         return;

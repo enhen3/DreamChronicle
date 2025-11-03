@@ -7,13 +7,15 @@ import {
   Loader2, Sparkles, Heart, Calendar as CalendarIcon, X,
   Skull, AlertTriangle, Frown, Meh, Smile, Laugh, Heart as HeartIcon,
   Cloud, CloudRain, Sun, Moon, Star, Zap, Flame, Snowflake,
-  Bug, Flower, Leaf, Waves, Mountain, Droplet, Wind
+  Bug, Flower, Leaf, Waves, Mountain, Droplet, Wind, Image as ImageIcon, RefreshCw
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import LiquidChrome from "@/components/backgrounds/LiquidChrome";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DreamAnalytics } from "@/components/DreamAnalytics";
 
 interface DreamHistory {
   id: string;
@@ -23,6 +25,7 @@ interface DreamHistory {
   moodColor: string; // 心情对应的颜色
   moodIcon?: string; // 心情对应的图标名称
   interpretation: string;
+  imageUrl?: string; // 梦境可视化图像 URL
   timestamp: number;
 }
 
@@ -494,6 +497,11 @@ const Index = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [pageBgColor, setPageBgColor] = useState<string>(""); // 页面背景颜色
   const [liquidChromeColor, setLiquidChromeColor] = useState<[number, number, number]>([0.08, 0.09, 0.12]); // LiquidChrome背景颜色
+  const [showCalendar, setShowCalendar] = useState<boolean>(false); // 控制日历显示
+  const [showButton, setShowButton] = useState<boolean>(false); // 控制按钮显示
+  const [dreamImageUrl, setDreamImageUrl] = useState<string | null>(null); // 当前梦境的图像 URL
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false); // 图像生成中状态
+  const [isTextareaFocused, setIsTextareaFocused] = useState<boolean>(false); // 文本框是否获得焦点
 
   // 当dream文本变化时，自动检测情绪
   useEffect(() => {
@@ -508,6 +516,17 @@ const Index = () => {
     // 更新LiquidChrome背景颜色
     const rgbArray = hexToRgbArray(bgColor, detected);
     setLiquidChromeColor(rgbArray);
+    
+    // 控制按钮浮现动画：当有输入内容时，延迟后显示按钮（像从水底慢慢浮到水面）
+    if (dream.trim().length > 0) {
+      // 延迟较长时间，让用户输入更多内容后再慢慢浮现
+      const timer = setTimeout(() => {
+        setShowButton(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    } else {
+      setShowButton(false);
+    }
   }, [dream]);
 
   useEffect(() => {
@@ -633,7 +652,7 @@ const Index = () => {
     }
   };
 
-  const saveToHistory = (dream: string, interpretation: string) => {
+  const saveToHistory = (dream: string, interpretation: string, imageUrl?: string) => {
     const moodInfo = getMoodFromValue(detectedMoodValue, selectedMoodIcon);
     const newEntry: DreamHistory = {
       id: Date.now().toString(),
@@ -643,11 +662,54 @@ const Index = () => {
       moodColor: moodInfo.color,
       moodIcon: moodInfo.icon,
       interpretation,
+      imageUrl: imageUrl || dreamImageUrl || undefined,
       timestamp: Date.now(),
     };
     const newHistory = [newEntry, ...history].slice(0, 10);
     setHistory(newHistory);
     localStorage.setItem("dreamHistory", JSON.stringify(newHistory));
+  };
+
+  const handleGenerateImage = async () => {
+    if (!dream.trim()) {
+      toast({
+        title: "无法生成图像",
+        description: "请先输入梦境内容",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingImage(true);
+    setDreamImageUrl(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-dream-image", {
+        body: { dream: dream.trim() },
+      });
+
+      if (error) throw error;
+
+      if (data.imageUrl) {
+        setDreamImageUrl(data.imageUrl);
+        toast({
+          title: "图像生成成功",
+          description: "梦境可视化图像已生成",
+        });
+      } else {
+        throw new Error("图像生成结果为空");
+      }
+    } catch (error) {
+      console.error("Error generating image:", error);
+      const message = error instanceof Error ? error.message : String(error ?? "");
+      toast({
+        title: "图像生成失败",
+        description: message || "请稍后重试",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingImage(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -673,7 +735,8 @@ const Index = () => {
 
       if (data.interpretation) {
         setInterpretation(data.interpretation);
-        saveToHistory(dream, data.interpretation);
+        saveToHistory(dream, data.interpretation, dreamImageUrl || undefined);
+        setShowCalendar(true); // 解梦完成后显示日历
         toast({
           title: "解梦完成",
           description: "已为您生成梦境解读",
@@ -701,6 +764,10 @@ const Index = () => {
     setInterpretation("");
     setPageBgColor("");
     setLiquidChromeColor([0.08, 0.09, 0.12]); // 重置为默认颜色
+    setShowCalendar(false); // 重置时隐藏日历
+    setShowButton(false); // 重置时隐藏按钮
+    setDreamImageUrl(null); // 重置图像
+    setIsGeneratingImage(false); // 重置图像生成状态
   };
 
   // 当前心情信息（基于自动检测的情绪值）
@@ -732,7 +799,7 @@ const Index = () => {
       <div className="absolute inset-0 -z-10">
         <LiquidChrome 
           baseColor={liquidChromeColor} 
-          speed={0.3} 
+          speed={0.4} 
           amplitude={0.45} 
           frequencyX={3}
           frequencyY={3}
@@ -740,24 +807,84 @@ const Index = () => {
         />
       </div>
 
-      <div className="container mx-auto px-4 py-12 md:py-16 relative z-10">
-        {/* Header */}
-        <header className="text-center mb-20 animate-fade-in">
-          <div className="flex items-center justify-center gap-4 mb-6">
-            <Sparkles className="w-6 h-6 text-primary/60" />
-            <h1 className="text-5xl md:text-6xl font-semibold tracking-tight bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-              夜梦录 · DreamChronicle
-            </h1>
-            <Sparkles className="w-6 h-6 text-primary/60" />
+      {/* Top Navigation Bar */}
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-black/20 backdrop-blur-xl">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo/Brand */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 border border-primary/20">
+                <Moon className="w-5 h-5 text-primary/80" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  夜梦录
+                </span>
+                <span className="text-[10px] text-muted-foreground/60 tracking-wider">
+                  DreamChronicle
+                </span>
+              </div>
+            </div>
+
+            {/* Navigation Links */}
+            <div className="hidden md:flex items-center gap-6">
+              <button
+                onClick={() => {
+                  setInterpretation("");
+                  setShowCalendar(false);
+                  handleReset();
+                }}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-300 font-light tracking-wide"
+              >
+                新建梦境
+              </button>
+              <button
+                onClick={() => {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-300 font-light tracking-wide"
+              >
+                回到顶部
+              </button>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setInterpretation("");
+                  setShowCalendar(false);
+                  handleReset();
+                }}
+                className="text-muted-foreground"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-          <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto leading-relaxed tracking-tight">
-            让每一次梦境，都有迹可循
-          </p>
-        </header>
+        </div>
+      </nav>
+
+      <div className="container mx-auto px-4 pt-24 pb-12 md:pt-28 md:pb-16 relative z-10">
 
         {/* Main Content */}
-        <div className="max-w-5xl mx-auto md:flex md:gap-6 items-start">
-          {/* Left column: compact calendar (desktop only) */}
+        <div className="max-w-5xl mx-auto">
+          {showCalendar && (
+            <Tabs defaultValue="records" className="w-full mb-8">
+              <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
+                <TabsTrigger value="records">记录</TabsTrigger>
+                <TabsTrigger value="analytics">数据分析</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="analytics" className="mt-0">
+                <DreamAnalytics history={history} />
+              </TabsContent>
+              
+              <TabsContent value="records" className="mt-0">
+                <div className="md:flex md:gap-6 items-start">
+                  {/* Left column: compact calendar (desktop only) */}
           <div className="hidden md:block md:w-[320px]">
             <div className="flex flex-col items-start gap-2 my-2">
               <Calendar
@@ -815,188 +942,230 @@ const Index = () => {
                     <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
                       {selectedDateRecords.map((item) => (
                         <div key={item.id} className="p-3 rounded bg-muted border border-border/50">
-                          <div className="flex justify-between items-center text-xs mb-1">
-                            <span>{item.mood}</span>
-                            <Button variant="ghost" size="sm" onClick={() => deleteHistory(item.id)} className="h-6 px-2 text-destructive">删除</Button>
-                          </div>
-                          <div className="mb-1 text-xs text-muted-foreground">梦境：{item.dream}</div>
-                          <div className="mb-1 text-xs text-muted-foreground">解读：
-                            <div>{formatInterpretation(item.interpretation).sections.map((section)=> <div key={section.title}>{section.title && <b>{section.title}</b>}{section.content}</div>)}</div>
-                          </div>
-                        </div>
-                      ))}
-          </div>
-            </Card>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right column: dream + submit */}
-          <div className="flex-1 space-y-8">
-          {/* 梦境描述输入区 */}
-          <div className="space-y-4">
-            <label className="text-base font-medium flex items-center gap-2.5 tracking-tight">
-              <Sparkles className="w-4 h-4 text-primary/70" /> 请描述您昨晚的梦境
-                  </label>
-                  <Textarea
-                    placeholder="在这里输入您的梦境... 例如：我梦见自己在天空中飞翔..."
-                    value={dream}
-                    onChange={(e) => setDream(e.target.value)}
-              className="min-h-[160px] resize-none bg-black/20 backdrop-blur-sm border border-white/10 focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all duration-300 placeholder:text-muted-foreground/50 text-[15px] leading-relaxed"
-                    disabled={isLoading}
-                  />
-                </div>
-          {/* Mobile calendar (below content) */}
-          <div className="md:hidden flex flex-col items-start gap-2 my-6">
-            <Calendar
-              locale={zhCN}
-              modifiers={modifiers}
-              modifiersClassNames={modifiersClassNames}
-              selected={selectedDate}
-              onSelect={handleDayClick}
-              mode="single"
-              className="rounded-xl text-xs shadow bg-card/80 p-2 [&_table]:my-0 [&_th]:py-1 [&_td]:py-0 [&_td]:px-1 [&_button]:h-7 [&_button]:w-7 min-w-fit"
-              components={{
-                Day: (props: any) => {
-                  const { date, onClick, className, ...restProps } = props;
-                  const dateStr = format(date, "yyyy-MM-dd");
-                  const record = datesWithRecords.get(dateStr);
-                  const clickable = Boolean(record);
-                  const dayStyle: Record<string, string | number> = {};
-                  if (record) {
-                    dayStyle.color = record.color;
-                    dayStyle.fontWeight = 600;
-                  }
-                  const handleClick = (e: any) => {
-                    if (typeof onClick === 'function') onClick(e);
-                    if (record) handleDayClick(date);
-                  };
-                  return (
-                      <button
-                      {...restProps}
-                      onClick={handleClick}
-                      className={`${className} ${clickable ? 'cursor-pointer' : 'cursor-default'}`}
-                      style={Object.keys(dayStyle).length > 0 ? dayStyle : undefined}
-                      aria-label={format(date, 'yyyy-MM-dd')}
-                    >
-                      <span className="relative z-10">{format(date, 'd')}</span>
-                      {record && (
-                        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: record.color }} aria-hidden="true" />
-                      )}
-                      </button>
-                  );
-                },
-              }}
-            />
-            {/* 平滑展开的当天记录卡片 ... 用 showRecordsPanel/panelVisible+动画过渡 ... */}
-            <div className={`transition-all duration-300 ease-out ${showRecordsPanel ? 'max-h-[480px] opacity-100 mt-2' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-              {showRecordsPanel && (
-                <Card className={`p-4 md:p-5 border border-border/50 bg-card/95 shadow-sm transition-all duration-300 ${panelVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-primary">
-                      {format(selectedDate, 'yyyy年MM月dd日', { locale: zhCN })} 的记录
-                    </span>
-                    <Button size="sm" variant="ghost" onClick={() => setSelectedDate(undefined)}>
-                      关闭
-                    </Button>
-                  </div>
-                  <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                    {selectedDateRecords.map((item) => (
-                      <div key={item.id} className="p-3 rounded bg-muted border border-border/50">
-                        {/* 心情、梦境、解读 显示同现有样式... */}
                         <div className="flex justify-between items-center text-xs mb-1">
                           <span>{item.mood}</span>
                           <Button variant="ghost" size="sm" onClick={() => deleteHistory(item.id)} className="h-6 px-2 text-destructive">删除</Button>
                         </div>
                         <div className="mb-1 text-xs text-muted-foreground">梦境：{item.dream}</div>
+                        {item.imageUrl && (
+                          <div className="mb-2 rounded overflow-hidden">
+                            <img src={item.imageUrl} alt="梦境可视化" className="w-full h-auto object-cover max-h-32" />
+                          </div>
+                        )}
                         <div className="mb-1 text-xs text-muted-foreground">解读：
                           <div>{formatInterpretation(item.interpretation).sections.map((section)=> <div key={section.title}>{section.title && <b>{section.title}</b>}{section.content}</div>)}</div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
-                  </div>
-                </div>
-          {/* Mobile calendar end */}
-
-                {/* Submit Button */}
-                <Button
-                  onClick={handleSubmit}
-            disabled={isLoading || !dream.trim()}
-            className="w-full h-14 text-base font-medium btn-primary-elegant disabled:opacity-40 disabled:cursor-not-allowed tracking-tight"
-                >
-                  {isLoading ? (
-                    <>
-                <Loader2 className="mr-2.5 h-5 w-5 animate-spin" />
-                      解读中...
-                    </>
-                  ) : (
-                    <>
-                <Sparkles className="mr-2.5 h-5 w-5" />
-                      开始解梦
-                    </>
-                  )}
-                </Button>
-          </div>
-              </div>
-      {/* 解梦结果卡片等 */}
-      {interpretation && (
-        <Card className="p-8 md:p-10 glass-card animate-fade-in">
-          <div className="space-y-8">
-            <div className="flex items-center justify-between pb-6 border-b border-white/5">
-              <h2 className="text-2xl md:text-3xl font-semibold tracking-tight flex items-center gap-3">
-                <Sparkles className="w-6 h-6 text-primary/70" />
-                梦境解读
-              </h2>
-              <Button 
-                variant="ghost" 
-                onClick={handleReset} 
-                className="text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all duration-300"
-              >
-                    再解一梦
-                  </Button>
-                </div>
-
-            <div className="space-y-6">
-              <div className="p-5 rounded-2xl bg-black/20 backdrop-blur-sm border border-white/5">
-                <div className="text-xs uppercase tracking-wider text-muted-foreground mb-3 font-medium">您的梦境</div>
-                <p className="text-foreground/90 text-[15px] leading-relaxed">{dream}</p>
-                  </div>
-
-              <div className="p-8 rounded-2xl bg-gradient-to-br from-primary/5 via-accent/3 to-primary/5 border border-primary/10">
-                <div className="space-y-8">
-                  {formatInterpretation(interpretation).sections.map((section, index) => (
-                    <div key={index} className="space-y-4">
-                      {section.title && (
-                        <div className="flex items-center gap-3 pb-3 border-b border-primary/10">
-                          <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
-                          <h3 className="text-lg font-semibold text-primary/90 tracking-tight">
-                            {section.title}
-                          </h3>
                         </div>
-                      )}
-                      <div className="text-foreground/90 leading-relaxed text-[15px] space-y-3">
-                        {section.content.split(/\n\n+/).map((paragraph, pIndex) => (
-                          paragraph.trim() && (
-                            <p key={pIndex} className="indent-0 first:mt-0 tracking-tight">
-                              {paragraph.trim()}
-                            </p>
-                          )
-                        ))}
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </Card>
+                )}
               </div>
             </div>
           </div>
-            </Card>
+
+                  {/* Right column: Latest interpretation */}
+                  <div className="flex-1 mt-2">
+                    {interpretation && (
+                      <Card className="p-6 border border-border/50 bg-card/95 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                          <h2 className="text-lg font-semibold text-primary flex items-center gap-2">
+                            <Sparkles className="w-5 h-5" />
+                            最新解读
+                          </h2>
+                          {dreamImageUrl && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleGenerateImage}
+                              disabled={isGeneratingImage}
+                              className="text-xs"
+                            >
+                              {isGeneratingImage ? "生成中..." : "重新生成图像"}
+                            </Button>
+                          )}
+                        </div>
+                        <div className="mb-4">
+                          <div className="text-sm text-muted-foreground mb-2">梦境：</div>
+                          <div className="text-sm leading-relaxed p-3 rounded bg-muted/50 border border-border/30">
+                            {dream}
+                          </div>
+                        </div>
+                        {dreamImageUrl && (
+                          <div className="mb-4 rounded-lg overflow-hidden">
+                            <img src={dreamImageUrl} alt="梦境可视化" className="w-full h-auto object-cover max-h-64" />
+                          </div>
+                        )}
+                        <div className="space-y-4">
+                          <div className="text-sm text-muted-foreground mb-2">解读：</div>
+                          <div className="text-sm leading-relaxed space-y-3">
+                            {formatInterpretation(interpretation).sections.map((section, idx) => (
+                              <div key={idx} className="p-3 rounded bg-muted/30 border border-border/20">
+                                {section.title && (
+                                  <h3 className="font-semibold text-primary mb-2 text-base">{section.title}</h3>
+                                )}
+                                <div className="text-muted-foreground whitespace-pre-wrap">{section.content}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </Card>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          )}
+
+          {!showCalendar && (
+            <div className="min-h-[calc(100vh-12rem)] flex items-center justify-center">
+              {/* 居中容器 - 标题、副标题、输入框 */}
+              <div className="w-full max-w-2xl mx-auto space-y-12 animate-fade-in">
+                {/* 标题 */}
+                <div className="text-center space-y-4">
+                  <div className="flex items-center justify-center gap-3 mb-2">
+                    <div className="h-px w-12 bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
+                    <Sparkles className="w-5 h-5 text-primary/70 animate-pulse" style={{ animationDuration: '3s' }} />
+                    <div className="h-px w-12 bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
+                  </div>
+                  <h1 className="text-4xl md:text-5xl font-light tracking-[0.12em] leading-tight">
+                    <span 
+                      className="inline-block bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_8s_ease-in-out_infinite]"
+                      style={{
+                        backgroundImage: 'linear-gradient(110deg, hsl(270 75% 72%) 0%, hsl(280 65% 65%) 50%, hsl(270 75% 72%) 100%)'
+                      }}
+                    >
+                      夜梦录
+                    </span>
+                    <span className="mx-3 text-primary/40 font-extralight">·</span>
+                    <span 
+                      className="inline-block bg-gradient-to-r from-primary/90 via-accent to-primary/90 bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_8s_ease-in-out_infinite_reverse]"
+                      style={{
+                        backgroundImage: 'linear-gradient(110deg, hsl(280 65% 65%) 0%, hsl(270 75% 70%) 50%, hsl(280 65% 65%) 100%)',
+                        animationDelay: '1s'
+                      }}
+                    >
+                      DreamChronicle
+                    </span>
+                  </h1>
+                  <div className="flex items-center justify-center gap-3 mt-2">
+                    <div className="h-px w-10 bg-gradient-to-r from-transparent via-accent/50 to-transparent"></div>
+                    <Moon className="w-3.5 h-3.5 text-accent/70" />
+                    <div className="h-px w-10 bg-gradient-to-r from-transparent via-accent/50 to-transparent"></div>
+                  </div>
+                </div>
+
+                {/* 副标题 */}
+                <div className="text-center">
+                  <p className="text-foreground/70 text-sm md:text-base font-light tracking-[0.2em] leading-relaxed">
+                    <span className="opacity-90">让每一次梦境</span>
+                    <span className="mx-2 opacity-50">·</span>
+                    <span className="opacity-90">都有迹可循</span>
+                  </p>
+                  <div className="mt-4 mx-auto w-20 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
+                </div>
+
+                {/* 梦境描述输入区 */}
+                <div className="space-y-0 relative">
+                  <Textarea
+                    value={dream}
+                    onChange={(e) => setDream(e.target.value)}
+                    onFocus={() => setIsTextareaFocused(true)}
+                    onBlur={() => setIsTextareaFocused(false)}
+                    className="min-h-[200px] resize-none bg-black/15 backdrop-blur-md border border-white/8 focus:border-primary/40 focus:ring-1 focus:ring-primary/20 transition-all duration-300 text-[15px] leading-relaxed font-light tracking-wide px-5 py-4 text-center relative z-10"
+                    disabled={isLoading}
+                  />
+                  {/* 苹果风格引导提示 - 精致梦境主题 */}
+                  {!dream.trim() && !isTextareaFocused && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                      {/* 毛玻璃背景容器 */}
+                      <div className="relative px-8 py-6 rounded-2xl backdrop-blur-xl bg-gradient-to-br from-primary/5 via-primary/3 to-accent/5 border border-primary/10 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+                        <div className="flex flex-col items-center gap-4">
+                          {/* 中心图标 - 月牙与星星组合 */}
+                          <div className="relative w-16 h-16 flex items-center justify-center">
+                            {/* 背景光晕层 */}
+                            <div className="absolute inset-0 rounded-full bg-primary/10 blur-2xl animate-apple-breathe"></div>
+                            <div className="absolute inset-0 rounded-full bg-accent/5 blur-xl animate-apple-breathe" style={{ animationDelay: '1s' }}></div>
+                            
+                            {/* 图标组合 */}
+                            <div className="relative z-10 flex items-center justify-center">
+                              <Moon className="w-7 h-7 text-primary/70 animate-apple-float" style={{ animationDuration: '4s' }} />
+                              <Sparkles className="w-4 h-4 text-accent/80 absolute -top-1 -right-1 animate-apple-sparkle" style={{ animationDelay: '0.5s', animationDuration: '3s' }} />
+                            </div>
+                          </div>
+
+                          {/* 文字提示 - 双层设计 */}
+                          <div className="flex flex-col items-center gap-2">
+                            {/* 主提示文字 */}
+                            <div className="relative">
+                              <span 
+                                className="text-[15px] font-light tracking-[0.12em] bg-gradient-to-r from-primary/90 via-primary to-primary/90 bg-clip-text text-transparent"
+                                style={{
+                                  backgroundSize: '200% auto',
+                                  animation: 'apple-shimmer 4s ease-in-out infinite'
+                                }}
+                              >
+                                记录梦境
+                              </span>
+                              {/* 文字下划线装饰 */}
+                              <div className="absolute -bottom-1 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent animate-apple-line"></div>
+                            </div>
+                            
+                            {/* 副提示 - 更微妙的样式 */}
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className="w-1 h-1 rounded-full bg-primary/30 animate-apple-dot" style={{ animationDelay: '0s' }}></div>
+                              <span className="text-[11px] font-extralight tracking-[0.2em] text-primary/40">
+                                轻触开始
+                              </span>
+                              <div className="w-1 h-1 rounded-full bg-primary/30 animate-apple-dot" style={{ animationDelay: '0.6s' }}></div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* 边缘微光效果 */}
+                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 animate-apple-edge-glow pointer-events-none"></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Submit Button - 从水底慢慢浮到水面的效果 */}
+                <div 
+                  className={`transition-all duration-[12000ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                    showButton 
+                      ? 'opacity-100 translate-y-0 scale-100 blur-0' 
+                      : 'opacity-0 translate-y-20 scale-90 blur-md pointer-events-none'
+                  }`}
+                  style={{
+                    transitionProperty: 'opacity, transform, filter',
+                    willChange: showButton ? 'auto' : 'transform, opacity, filter',
+                    transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' // 更平滑的缓动，模拟水的阻力
+                  }}
+                >
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={isLoading || !dream.trim()}
+                    className="w-full h-14 text-base font-light tracking-wider btn-primary-elegant disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2.5 h-5 w-5 animate-spin" />
+                        解读中...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2.5 h-5 w-5" />
+                        开始解梦
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>
+    </div>
   );
 }
 
