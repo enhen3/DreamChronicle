@@ -736,11 +736,7 @@ const Index = () => {
       if (data.interpretation) {
         setInterpretation(data.interpretation);
         saveToHistory(dream, data.interpretation, dreamImageUrl || undefined);
-        setShowCalendar(true); // 解梦完成后显示日历
-        toast({
-          title: "解梦完成",
-          description: "已为您生成梦境解读",
-        });
+        setShowCalendar(true); // 解梦完成后直接显示解读页面
       } else {
         throw new Error("解读结果为空");
       }
@@ -799,7 +795,7 @@ const Index = () => {
       <div className="absolute inset-0 -z-10">
         <LiquidChrome 
           baseColor={liquidChromeColor} 
-          speed={0.4} 
+          speed={0.25} 
           amplitude={0.45} 
           frequencyX={3}
           frequencyY={3}
@@ -1028,26 +1024,43 @@ const Index = () => {
                     <Sparkles className="w-5 h-5 text-primary/70 animate-pulse" style={{ animationDuration: '3s' }} />
                     <div className="h-px w-12 bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
                   </div>
-                  <h1 className="text-4xl md:text-5xl font-light tracking-[0.12em] leading-tight">
-                    <span 
-                      className="inline-block bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_8s_ease-in-out_infinite]"
-                      style={{
-                        backgroundImage: 'linear-gradient(110deg, hsl(270 75% 72%) 0%, hsl(280 65% 65%) 50%, hsl(270 75% 72%) 100%)'
-                      }}
-                    >
-                      夜梦录
-                    </span>
-                    <span className="mx-3 text-primary/40 font-extralight">·</span>
-                    <span 
-                      className="inline-block bg-gradient-to-r from-primary/90 via-accent to-primary/90 bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_8s_ease-in-out_infinite_reverse]"
-                      style={{
-                        backgroundImage: 'linear-gradient(110deg, hsl(280 65% 65%) 0%, hsl(270 75% 70%) 50%, hsl(280 65% 65%) 100%)',
-                        animationDelay: '1s'
-                      }}
-                    >
-                      DreamChronicle
-                    </span>
-                  </h1>
+                  {/* 标题组 - 主次分明的高级排版 */}
+                  <div className="flex flex-col items-center space-y-1.5">
+                    {/* 主标题 - 夜梦录 */}
+                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-light tracking-[0.15em] leading-[1.1]">
+                      <span 
+                        className="inline-block bg-gradient-to-r from-primary via-accent/90 to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_8s_ease-in-out_infinite]"
+                        style={{
+                          backgroundImage: 'linear-gradient(110deg, hsl(270 75% 72%) 0%, hsl(280 65% 65%) 50%, hsl(270 75% 72%) 100%)',
+                          fontWeight: 300,
+                          letterSpacing: '0.15em'
+                        }}
+                      >
+                        夜梦录
+                      </span>
+                    </h1>
+                    
+                    {/* 副标题 - DreamChronicle */}
+                    <div className="flex items-center gap-2.5 mt-1.5">
+                      {/* 左侧装饰线 */}
+                      <div className="h-px w-8 bg-gradient-to-r from-transparent via-primary/30 to-primary/50"></div>
+                      
+                      {/* 副标题文字 */}
+                      <span 
+                        className="text-[10px] md:text-[11px] font-extralight tracking-[0.3em] uppercase text-primary/45"
+                        style={{
+                          letterSpacing: '0.3em',
+                          fontWeight: 200,
+                          fontVariantNumeric: 'normal'
+                        }}
+                      >
+                        Dream Chronicle
+                      </span>
+                      
+                      {/* 右侧装饰线 */}
+                      <div className="h-px w-8 bg-gradient-to-r from-primary/50 via-primary/30 to-transparent"></div>
+                    </div>
+                  </div>
                   <div className="flex items-center justify-center gap-3 mt-2">
                     <div className="h-px w-10 bg-gradient-to-r from-transparent via-accent/50 to-transparent"></div>
                     <Moon className="w-3.5 h-3.5 text-accent/70" />
@@ -1075,55 +1088,50 @@ const Index = () => {
                     className="min-h-[200px] resize-none bg-black/15 backdrop-blur-md border border-white/8 focus:border-primary/40 focus:ring-1 focus:ring-primary/20 transition-all duration-300 text-[15px] leading-relaxed font-light tracking-wide px-5 py-4 text-center relative z-10"
                     disabled={isLoading}
                   />
-                  {/* 苹果风格引导提示 - 精致梦境主题 */}
+                  {/* 苹果风格引导提示 - 与文本框融合设计 */}
                   {!dream.trim() && !isTextareaFocused && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                      {/* 毛玻璃背景容器 */}
-                      <div className="relative px-8 py-6 rounded-2xl backdrop-blur-xl bg-gradient-to-br from-primary/5 via-primary/3 to-accent/5 border border-primary/10 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
-                        <div className="flex flex-col items-center gap-4">
-                          {/* 中心图标 - 月牙与星星组合 */}
-                          <div className="relative w-16 h-16 flex items-center justify-center">
-                            {/* 背景光晕层 */}
-                            <div className="absolute inset-0 rounded-full bg-primary/10 blur-2xl animate-apple-breathe"></div>
-                            <div className="absolute inset-0 rounded-full bg-accent/5 blur-xl animate-apple-breathe" style={{ animationDelay: '1s' }}></div>
-                            
-                            {/* 图标组合 */}
-                            <div className="relative z-10 flex items-center justify-center">
-                              <Moon className="w-7 h-7 text-primary/70 animate-apple-float" style={{ animationDuration: '4s' }} />
-                              <Sparkles className="w-4 h-4 text-accent/80 absolute -top-1 -right-1 animate-apple-sparkle" style={{ animationDelay: '0.5s', animationDuration: '3s' }} />
-                            </div>
-                          </div>
-
-                          {/* 文字提示 - 双层设计 */}
-                          <div className="flex flex-col items-center gap-2">
-                            {/* 主提示文字 */}
-                            <div className="relative">
-                              <span 
-                                className="text-[15px] font-light tracking-[0.12em] bg-gradient-to-r from-primary/90 via-primary to-primary/90 bg-clip-text text-transparent"
-                                style={{
-                                  backgroundSize: '200% auto',
-                                  animation: 'apple-shimmer 4s ease-in-out infinite'
-                                }}
-                              >
-                                记录梦境
-                              </span>
-                              {/* 文字下划线装饰 */}
-                              <div className="absolute -bottom-1 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent animate-apple-line"></div>
-                            </div>
-                            
-                            {/* 副提示 - 更微妙的样式 */}
-                            <div className="flex items-center gap-2 mt-1">
-                              <div className="w-1 h-1 rounded-full bg-primary/30 animate-apple-dot" style={{ animationDelay: '0s' }}></div>
-                              <span className="text-[11px] font-extralight tracking-[0.2em] text-primary/40">
-                                轻触开始
-                              </span>
-                              <div className="w-1 h-1 rounded-full bg-primary/30 animate-apple-dot" style={{ animationDelay: '0.6s' }}></div>
-                            </div>
+                      {/* 无边框容器，直接融入文本框 */}
+                      <div className="flex flex-col items-center gap-4">
+                        {/* 中心图标 - 月牙与星星组合 */}
+                        <div className="relative w-16 h-16 flex items-center justify-center">
+                          {/* 背景光晕层 - 柔和融入 */}
+                          <div className="absolute inset-0 rounded-full bg-primary/8 blur-2xl animate-apple-breathe"></div>
+                          <div className="absolute inset-0 rounded-full bg-accent/4 blur-xl animate-apple-breathe" style={{ animationDelay: '1s' }}></div>
+                          
+                          {/* 图标组合 */}
+                          <div className="relative z-10 flex items-center justify-center">
+                            <Moon className="w-7 h-7 text-primary/60 animate-apple-float" style={{ animationDuration: '4s' }} />
+                            <Sparkles className="w-4 h-4 text-accent/70 absolute -top-1 -right-1 animate-apple-sparkle" style={{ animationDelay: '0.5s', animationDuration: '3s' }} />
                           </div>
                         </div>
-                        
-                        {/* 边缘微光效果 */}
-                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 animate-apple-edge-glow pointer-events-none"></div>
+
+                        {/* 文字提示 - 精致融入 */}
+                        <div className="flex flex-col items-center gap-2">
+                          {/* 主提示文字 */}
+                          <div className="relative">
+                            <span 
+                              className="text-[15px] font-light tracking-[0.12em] bg-gradient-to-r from-primary/70 via-primary/80 to-primary/70 bg-clip-text text-transparent"
+                              style={{
+                                backgroundSize: '200% auto',
+                                animation: 'apple-shimmer 4s ease-in-out infinite'
+                              }}
+                            >
+                              记录梦境
+                            </span>
+                            {/* 文字下划线装饰 - 更微妙 */}
+                            <div className="absolute -bottom-1 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent animate-apple-line"></div>
+                          </div>
+                          
+                          {/* 副提示 - 更微妙的样式 */}
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className="w-1 h-1 rounded-full bg-primary/25 animate-apple-dot" style={{ animationDelay: '0s' }}></div>
+                            <span className="text-[11px] font-extralight tracking-[0.2em] text-primary/35">
+                              轻触开始
+                            </span>
+                            <div className="w-1 h-1 rounded-full bg-primary/25 animate-apple-dot" style={{ animationDelay: '0.6s' }}></div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
