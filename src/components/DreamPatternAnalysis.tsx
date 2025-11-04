@@ -81,31 +81,118 @@ export const DreamPatternAnalysis = ({ history }: DreamPatternAnalysisProps) => 
         timestamp: item.timestamp,
       }));
 
+      console.log("Calling analyze-dream-patterns with:", { 
+        dreamsCount: dreamsData.length,
+        sampleDream: dreamsData[0]?.dream?.substring(0, 50)
+      });
+
+      console.log("Calling analyze-dream-patterns with:", { 
+        dreamsCount: dreamsData.length,
+        sampleDream: dreamsData[0]?.dream?.substring(0, 50)
+      });
+
       const { data, error: apiError } = await supabase.functions.invoke("analyze-dream-patterns", {
         body: { dreams: dreamsData },
       });
 
-      if (apiError) throw apiError;
+      console.log("API Response received:", { 
+        hasData: !!data, 
+        hasError: !!apiError,
+        dataType: typeof data,
+        errorType: typeof apiError,
+        dataKeys: data ? Object.keys(data) : null,
+        dataPreview: data ? JSON.stringify(data).substring(0, 200) : null,
+        errorDetails: apiError 
+      });
 
-      if (data.error) {
-        // 记录数不足的情况
-        setError(data.error);
+      // 首先处理Supabase客户端错误（网络错误、函数未找到等）
+      if (apiError) {
+        console.error("Supabase client error:", apiError);
+        console.error("Error type:", typeof apiError);
+        
+        // 尝试提取错误消息
+        let errorMessage = "分析服务暂时不可用，请稍后重试";
+        
+        if (typeof apiError === 'object' && apiError !== null) {
+          const errorObj = apiError as any;
+          // 检查常见的错误属性
+          if (errorObj.message) {
+            errorMessage = String(errorObj.message);
+          } else if (errorObj.error) {
+            errorMessage = String(errorObj.error);
+          } else if (errorObj.status === 404 || errorObj.statusCode === 404) {
+            errorMessage = "分析功能暂未配置，请确保Edge Function已部署";
+          } else if (errorObj.status || errorObj.statusCode) {
+            errorMessage = `请求失败 (状态码: ${errorObj.status || errorObj.statusCode})`;
+          } else {
+            // 尝试序列化
+            try {
+              const errorStr = JSON.stringify(apiError);
+              console.error("Error details:", errorStr);
+            } catch (e) {
+              console.error("Cannot stringify error:", e);
+            }
+          }
+        } else if (typeof apiError === 'string') {
+          errorMessage = apiError;
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      // 检查返回的数据
+      if (!data) {
+        console.error("No data returned from function");
+        throw new Error("分析服务返回空数据，请稍后重试");
+      }
+
+      // 检查数据中是否有error字段（Edge Function返回的业务错误）
+      if (data && typeof data === 'object' && 'error' in data && data.error) {
+        console.log("Function returned error:", data.error);
+        const errorMsg = typeof data.error === 'string' ? data.error : String(data.error);
+        setError(errorMsg);
         setAnalysis(null);
         return;
       }
 
-      if (!data.insights || !data.patterns) {
-        throw new Error("分析结果格式错误");
+      // 验证返回的数据结构
+      if (!data || typeof data !== 'object' || !('insights' in data) || !('patterns' in data)) {
+        console.error("Invalid response structure:", {
+          hasInsights: data && 'insights' in data,
+          hasPatterns: data && 'patterns' in data,
+          dataKeys: data ? Object.keys(data) : null,
+          data: data
+        });
+        throw new Error("分析结果格式错误，请稍后重试");
       }
 
-      setAnalysis(data);
+      console.log("Analysis successful, setting data");
+      setAnalysis(data as PatternAnalysisResult);
     } catch (error) {
       console.error("Error analyzing patterns:", error);
+      // 使用与interpret-dream相同的简单错误处理逻辑
       const message = error instanceof Error ? error.message : String(error ?? "");
-      setError(message);
+      
+      // 根据错误消息内容提供更友好的提示
+      const lowerMessage = message.toLowerCase();
+      let friendlyMessage = message;
+      
+      if (lowerMessage.includes("function") && (lowerMessage.includes("not found") || lowerMessage.includes("404"))) {
+        friendlyMessage = "分析功能暂未配置，请确保Edge Function已部署";
+      } else if (lowerMessage.includes("404")) {
+        friendlyMessage = "分析功能暂未配置，请确保Edge Function已部署";
+      } else if (lowerMessage.includes("failed to send") || lowerMessage.includes("fetch") || lowerMessage.includes("network") || lowerMessage.includes("连接") || lowerMessage.includes("timeout") || lowerMessage.includes("connection")) {
+        friendlyMessage = "无法连接到分析服务，请检查网络连接或稍后重试";
+      } else if (lowerMessage.includes("cors") || lowerMessage.includes("跨域")) {
+        friendlyMessage = "跨域请求失败，请检查服务器配置";
+      } else if (!message || message.trim() === "") {
+        friendlyMessage = "分析服务暂时不可用，请稍后重试";
+      }
+      
+      setError(friendlyMessage);
       toast({
         title: "分析失败",
-        description: message || "请稍后重试",
+        description: friendlyMessage,
         variant: "destructive",
       });
     } finally {

@@ -51,13 +51,33 @@ function calculateSimilarity(topics1: string[], topics2: string[]): number {
 }
 
 serve(async (req) => {
+  // 处理 CORS 预检请求
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      status: 204,
+      headers: {
+        ...corsHeaders,
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      }
+    });
   }
 
   try {
-    const { dreams } = await req.json();
-    console.log('Received pattern analysis request:', { count: dreams?.length || 0 });
+    // 记录请求开始
+    console.log('Received request:', { method: req.method, url: req.url });
+    
+    let dreams;
+    try {
+      const body = await req.json();
+      dreams = body.dreams;
+      console.log('Received pattern analysis request:', { count: dreams?.length || 0 });
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      return new Response(
+        JSON.stringify({ error: '请求格式错误，请检查数据格式' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!dreams || !Array.isArray(dreams) || dreams.length === 0) {
       return new Response(
@@ -223,8 +243,26 @@ ${dreamsText}
       );
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      console.error('Failed to parse OpenRouter response:', jsonError);
+      return new Response(
+        JSON.stringify({ error: 'AI服务响应格式错误，请稍后重试' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     const insights = data.choices?.[0]?.message?.content || '';
+    
+    if (!insights || insights.trim().length === 0) {
+      console.error('No insights generated from AI:', data);
+      return new Response(
+        JSON.stringify({ error: 'AI分析生成失败，请稍后重试' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // 构建推荐梦境（基于相似度）
     const recommendations = relatedDreams.slice(0, 5).map(rel => {
@@ -264,10 +302,27 @@ ${dreamsText}
     );
   } catch (error) {
     console.error('Error in analyze-dream-patterns function:', error);
-    const errorMessage = error instanceof Error ? error.message : '服务器错误，请稍后重试';
+    const errorMessage = error instanceof Error ? error.message : String(error) || '服务器错误，请稍后重试';
+    console.error('Error details:', {
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      error: error,
+      errorType: typeof error
+    });
+    
+    // 确保返回的错误格式正确
     return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        error: errorMessage
+      }),
+      { 
+        status: 500, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        } 
+      }
     );
   }
 });
