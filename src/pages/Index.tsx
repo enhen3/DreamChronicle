@@ -7,7 +7,8 @@ import {
   Loader2, Sparkles, Heart, Calendar as CalendarIcon, X,
   Skull, AlertTriangle, Frown, Meh, Smile, Laugh, Heart as HeartIcon,
   Cloud, CloudRain, Sun, Moon, Star, Zap, Flame, Snowflake,
-  Bug, Flower, Leaf, Waves, Mountain, Droplet, Wind, Image as ImageIcon, RefreshCw
+  Bug, Flower, Leaf, Waves, Mountain, Droplet, Wind, Image as ImageIcon, RefreshCw,
+  MousePointerClick, FileText
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -16,6 +17,7 @@ import { zhCN } from "date-fns/locale";
 import LiquidChrome from "@/components/backgrounds/LiquidChrome";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DreamAnalytics } from "@/components/DreamAnalytics";
+import { DreamTemplate, StructuredDream } from "@/components/DreamTemplate";
 
 interface DreamHistory {
   id: string;
@@ -496,35 +498,40 @@ const Index = () => {
   const [history, setHistory] = useState<DreamHistory[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [pageBgColor, setPageBgColor] = useState<string>(""); // 页面背景颜色
-  const [liquidChromeColor, setLiquidChromeColor] = useState<[number, number, number]>([0.08, 0.09, 0.12]); // LiquidChrome背景颜色
+  const [liquidChromeColor, setLiquidChromeColor] = useState<[number, number, number]>([0.095, 0.085, 0.125]); // LiquidChrome背景颜色 - 带微妙紫色调
   const [showCalendar, setShowCalendar] = useState<boolean>(false); // 控制日历显示
   const [showButton, setShowButton] = useState<boolean>(false); // 控制按钮显示
   const [dreamImageUrl, setDreamImageUrl] = useState<string | null>(null); // 当前梦境的图像 URL
   const [isGeneratingImage, setIsGeneratingImage] = useState(false); // 图像生成中状态
   const [isTextareaFocused, setIsTextareaFocused] = useState<boolean>(false); // 文本框是否获得焦点
+  const [useTemplate, setUseTemplate] = useState<boolean>(false); // 是否使用模板模式
 
   // 当dream文本变化时，自动检测情绪
   useEffect(() => {
     const detected = detectEmotionFromText(dream);
     setDetectedMoodValue(detected);
     
-    // 根据检测到的情绪值更新页面背景颜色
-    const moodInfo = getMoodFromValue(detected);
-    const bgColor = moodInfo.color;
-    setPageBgColor(bgColor);
-    
-    // 更新LiquidChrome背景颜色
-    const rgbArray = hexToRgbArray(bgColor, detected);
-    setLiquidChromeColor(rgbArray);
-    
-    // 控制按钮浮现动画：当有输入内容时，延迟后显示按钮（像从水底慢慢浮到水面）
+    // 只有当有输入内容时才更新背景颜色，否则保持初始紫色
     if (dream.trim().length > 0) {
+      // 根据检测到的情绪值更新页面背景颜色
+      const moodInfo = getMoodFromValue(detected);
+      const bgColor = moodInfo.color;
+      setPageBgColor(bgColor);
+      
+      // 更新LiquidChrome背景颜色
+      const rgbArray = hexToRgbArray(bgColor, detected);
+      setLiquidChromeColor(rgbArray);
+      
+      // 控制按钮浮现动画：当有输入内容时，延迟后显示按钮（像从水底慢慢浮到水面）
       // 延迟较长时间，让用户输入更多内容后再慢慢浮现
       const timer = setTimeout(() => {
         setShowButton(true);
       }, 1500);
       return () => clearTimeout(timer);
     } else {
+      // 没有输入时，恢复初始紫色背景
+      setPageBgColor("");
+      setLiquidChromeColor([0.095, 0.085, 0.125]); // 恢复为初始微妙紫色调
       setShowButton(false);
     }
   }, [dream]);
@@ -759,11 +766,12 @@ const Index = () => {
     setSelectedMoodIcon(undefined);
     setInterpretation("");
     setPageBgColor("");
-    setLiquidChromeColor([0.08, 0.09, 0.12]); // 重置为默认颜色
+    setLiquidChromeColor([0.095, 0.085, 0.125]); // 重置为默认颜色 - 带微妙紫色调
     setShowCalendar(false); // 重置时隐藏日历
     setShowButton(false); // 重置时隐藏按钮
     setDreamImageUrl(null); // 重置图像
     setIsGeneratingImage(false); // 重置图像生成状态
+    setUseTemplate(false); // 重置模板模式
   };
 
   // 当前心情信息（基于自动检测的情绪值）
@@ -1027,13 +1035,16 @@ const Index = () => {
                   {/* 标题组 - 主次分明的高级排版 */}
                   <div className="flex flex-col items-center space-y-1.5">
                     {/* 主标题 - 夜梦录 */}
-                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-light tracking-[0.15em] leading-[1.1]">
+                    <h1 className="text-5xl md:text-6xl lg:text-7xl tracking-[0.15em] leading-[1.1]">
                       <span 
-                        className="inline-block bg-gradient-to-r from-primary via-accent/90 to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_8s_ease-in-out_infinite]"
+                        className="inline-block bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_8s_ease-in-out_infinite] relative"
                         style={{
-                          backgroundImage: 'linear-gradient(110deg, hsl(270 75% 72%) 0%, hsl(280 65% 65%) 50%, hsl(270 75% 72%) 100%)',
-                          fontWeight: 300,
-                          letterSpacing: '0.15em'
+                          backgroundImage: 'linear-gradient(110deg, hsl(270 90% 78%) 0%, hsl(280 80% 70%) 50%, hsl(270 90% 78%) 100%)',
+                          fontWeight: 500,
+                          letterSpacing: '0.15em',
+                          WebkitTextStroke: '0.3px rgba(184, 130, 237, 0.2)',
+                          textShadow: '0 0 30px rgba(184, 130, 237, 0.4), 0 0 60px rgba(185, 108, 224, 0.3), 0 4px 12px rgba(0, 0, 0, 0.3)',
+                          filter: 'drop-shadow(0 2px 12px rgba(184, 130, 237, 0.35))'
                         }}
                       >
                         夜梦录
@@ -1078,64 +1089,103 @@ const Index = () => {
                   <div className="mt-4 mx-auto w-20 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
                 </div>
 
-                {/* 梦境描述输入区 */}
-                <div className="space-y-0 relative">
-                  <Textarea
-                    value={dream}
-                    onChange={(e) => setDream(e.target.value)}
-                    onFocus={() => setIsTextareaFocused(true)}
-                    onBlur={() => setIsTextareaFocused(false)}
-                    className="min-h-[200px] resize-none bg-black/15 backdrop-blur-md border border-white/8 focus:border-primary/40 focus:ring-1 focus:ring-primary/20 transition-all duration-300 text-[15px] leading-relaxed font-light tracking-wide px-5 py-4 text-center relative z-10"
-                    disabled={isLoading}
-                  />
-                  {/* 苹果风格引导提示 - 与文本框融合设计 */}
-                  {!dream.trim() && !isTextareaFocused && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                      {/* 无边框容器，直接融入文本框 */}
-                      <div className="flex flex-col items-center gap-4">
-                        {/* 中心图标 - 月牙与星星组合 */}
-                        <div className="relative w-16 h-16 flex items-center justify-center">
-                          {/* 背景光晕层 - 柔和融入 */}
-                          <div className="absolute inset-0 rounded-full bg-primary/8 blur-2xl animate-apple-breathe"></div>
-                          <div className="absolute inset-0 rounded-full bg-accent/4 blur-xl animate-apple-breathe" style={{ animationDelay: '1s' }}></div>
-                          
-                          {/* 图标组合 */}
-                          <div className="relative z-10 flex items-center justify-center">
-                            <Moon className="w-7 h-7 text-primary/60 animate-apple-float" style={{ animationDuration: '4s' }} />
-                            <Sparkles className="w-4 h-4 text-accent/70 absolute -top-1 -right-1 animate-apple-sparkle" style={{ animationDelay: '0.5s', animationDuration: '3s' }} />
-                          </div>
-                        </div>
+                {/* 模式切换按钮 */}
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <Button
+                    variant={!useTemplate ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setUseTemplate(false)}
+                    className="text-xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                    自由记录
+                  </Button>
+                  <Button
+                    variant={useTemplate ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setUseTemplate(true)}
+                    className="text-xs"
+                  >
+                    <FileText className="w-3.5 h-3.5 mr-1.5" />
+                    引导记录
+                  </Button>
+                </div>
 
-                        {/* 文字提示 - 精致融入 */}
-                        <div className="flex flex-col items-center gap-2">
-                          {/* 主提示文字 */}
-                          <div className="relative">
-                            <span 
-                              className="text-[15px] font-light tracking-[0.12em] bg-gradient-to-r from-primary/70 via-primary/80 to-primary/70 bg-clip-text text-transparent"
-                              style={{
-                                backgroundSize: '200% auto',
-                                animation: 'apple-shimmer 4s ease-in-out infinite'
-                              }}
-                            >
-                              记录梦境
-                            </span>
-                            {/* 文字下划线装饰 - 更微妙 */}
-                            <div className="absolute -bottom-1 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent animate-apple-line"></div>
+                {/* 梦境描述输入区 */}
+                {useTemplate ? (
+                  <DreamTemplate
+                    onComplete={(structuredDream, fullText) => {
+                      setDream(fullText);
+                      setUseTemplate(false);
+                      // 自动触发情绪检测
+                      const detected = detectEmotionFromText(fullText);
+                      setDetectedMoodValue(detected);
+                      toast({
+                        title: "模板完成",
+                        description: "已生成梦境描述，可以开始解梦了",
+                      });
+                    }}
+                    onCancel={() => setUseTemplate(false)}
+                  />
+                ) : (
+                  <div className="space-y-0 relative">
+                    <Textarea
+                      value={dream}
+                      onChange={(e) => setDream(e.target.value)}
+                      onFocus={() => setIsTextareaFocused(true)}
+                      onBlur={() => setIsTextareaFocused(false)}
+                      className="min-h-[200px] resize-none bg-black/15 backdrop-blur-md border border-white/8 focus:border-primary/40 focus:ring-1 focus:ring-primary/20 transition-all duration-300 text-[15px] leading-relaxed font-light tracking-wide px-5 py-4 text-center relative z-10"
+                      disabled={isLoading}
+                    />
+                    {/* 苹果风格引导提示 - 与文本框融合设计 */}
+                    {!dream.trim() && !isTextareaFocused && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                        {/* 无边框容器，直接融入文本框 */}
+                        <div className="flex flex-col items-center gap-4">
+                          {/* 中心图标 - 月牙与星星组合 */}
+                          <div className="relative w-16 h-16 flex items-center justify-center">
+                            {/* 背景光晕层 - 柔和融入 */}
+                            <div className="absolute inset-0 rounded-full bg-primary/8 blur-2xl animate-apple-breathe"></div>
+                            <div className="absolute inset-0 rounded-full bg-accent/4 blur-xl animate-apple-breathe" style={{ animationDelay: '1s' }}></div>
+                            
+                            {/* 图标组合 */}
+                            <div className="relative z-10 flex items-center justify-center">
+                              <Moon className="w-7 h-7 text-primary/60 animate-apple-float" style={{ animationDuration: '4s' }} />
+                              <Sparkles className="w-4 h-4 text-accent/70 absolute -top-1 -right-1 animate-apple-sparkle" style={{ animationDelay: '0.5s', animationDuration: '3s' }} />
+                            </div>
                           </div>
-                          
-                          {/* 副提示 - 更微妙的样式 */}
-                          <div className="flex items-center gap-2 mt-1">
-                            <div className="w-1 h-1 rounded-full bg-primary/25 animate-apple-dot" style={{ animationDelay: '0s' }}></div>
-                            <span className="text-[11px] font-extralight tracking-[0.2em] text-primary/35">
-                              轻触开始
-                            </span>
-                            <div className="w-1 h-1 rounded-full bg-primary/25 animate-apple-dot" style={{ animationDelay: '0.6s' }}></div>
+
+                          {/* 文字提示 - 精致融入 */}
+                          <div className="flex flex-col items-center gap-2">
+                            {/* 主提示文字 */}
+                            <div className="relative">
+                              <span 
+                                className="text-[15px] font-light tracking-[0.12em] bg-gradient-to-r from-primary/70 via-primary/80 to-primary/70 bg-clip-text text-transparent"
+                                style={{
+                                  backgroundSize: '200% auto',
+                                  animation: 'apple-shimmer 4s ease-in-out infinite'
+                                }}
+                              >
+                                记录梦境
+                              </span>
+                              {/* 文字下划线装饰 - 更微妙 */}
+                              <div className="absolute -bottom-1 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent animate-apple-line"></div>
+                            </div>
+                            
+                            {/* 副提示 - 更微妙的样式 */}
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className="w-1 h-1 rounded-full bg-primary/25 animate-apple-dot" style={{ animationDelay: '0s' }}></div>
+                              <span className="text-[11px] font-extralight tracking-[0.2em] text-primary/35">
+                                轻触开始
+                              </span>
+                              <div className="w-1 h-1 rounded-full bg-primary/25 animate-apple-dot" style={{ animationDelay: '0.6s' }}></div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Submit Button - 从水底慢慢浮到水面的效果 */}
                 <div 

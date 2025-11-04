@@ -38,6 +38,10 @@ export const LiquidChrome = ({
     const renderer = new Renderer({ antialias: true });
     const gl = renderer.gl;
     gl.clearColor(1, 1, 1, 1);
+    
+    // 启用高质量纹理过滤
+    gl.getExtension('OES_texture_float_linear');
+    gl.getExtension('OES_texture_half_float_linear');
 
     const vertexShader = `
       attribute vec2 position;
@@ -82,14 +86,14 @@ export const LiquidChrome = ({
       }
 
       void main() {
-          // 使用轻量级采样（3x3简化为十字形5点采样），平衡性能与视觉质量
+          // 使用3x3全采样提升清晰度和抗锯齿效果
+          // 优化采样偏移量，使用更精确的像素单位
+          vec2 pixelSize = 1.0 / uResolution.xy;
           vec4 col = vec4(0.0);
           int samples = 0;
           for (int i = -1; i <= 1; i++){
               for (int j = -1; j <= 1; j++){
-                  // 只采样中心点和十字形4点，减少采样数量但保持抗锯齿
-                  if (i != 0 && j != 0) continue;
-                  vec2 offset = vec2(float(i), float(j)) * (1.0 / min(uResolution.x, uResolution.y));
+                  vec2 offset = vec2(float(i), float(j)) * pixelSize * 0.5;
                   col += renderImage(vUv + offset);
                   samples++;
               }
@@ -117,9 +121,12 @@ export const LiquidChrome = ({
     const mesh = new Mesh(gl, { geometry, program });
 
     function resize() {
-      // 平衡性能与质量：渲染分辨率设为0.7倍
-      const scale = 0.7;
-      renderer.setSize(container.offsetWidth * scale, container.offsetHeight * scale);
+      // 提高渲染分辨率以增强清晰度：使用设备像素比
+      const dpr = Math.min(window.devicePixelRatio || 1, 3); // 提高到3倍以获得更清晰的画面
+      renderer.setSize(container.offsetWidth * dpr, container.offsetHeight * dpr);
+      // 设置canvas的CSS尺寸，确保正确显示
+      gl.canvas.style.width = container.offsetWidth + 'px';
+      gl.canvas.style.height = container.offsetHeight + 'px';
       const resUniform = program.uniforms.uResolution.value as Float32Array;
       resUniform[0] = gl.canvas.width;
       resUniform[1] = gl.canvas.height;

@@ -10,6 +10,10 @@
   width: 100% !important;
   height: 100% !important;
   display: block;
+  /* 使用平滑渲染以获得更好的清晰度 */
+  image-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 
