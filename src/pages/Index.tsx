@@ -513,16 +513,16 @@ const Index = () => {
     
     // 只有当有输入内容时才更新背景颜色，否则保持初始紫色
     if (dream.trim().length > 0) {
-      // 根据检测到的情绪值更新页面背景颜色
-      const moodInfo = getMoodFromValue(detected);
-      const bgColor = moodInfo.color;
-      setPageBgColor(bgColor);
-      
-      // 更新LiquidChrome背景颜色
-      const rgbArray = hexToRgbArray(bgColor, detected);
-      setLiquidChromeColor(rgbArray);
-      
-      // 控制按钮浮现动画：当有输入内容时，延迟后显示按钮（像从水底慢慢浮到水面）
+    // 根据检测到的情绪值更新页面背景颜色
+    const moodInfo = getMoodFromValue(detected);
+    const bgColor = moodInfo.color;
+    setPageBgColor(bgColor);
+    
+    // 更新LiquidChrome背景颜色
+    const rgbArray = hexToRgbArray(bgColor, detected);
+    setLiquidChromeColor(rgbArray);
+    
+    // 控制按钮浮现动画：当有输入内容时，延迟后显示按钮（像从水底慢慢浮到水面）
       // 延迟较长时间，让用户输入更多内容后再慢慢浮现
       const timer = setTimeout(() => {
         setShowButton(true);
@@ -819,7 +819,7 @@ const Index = () => {
             <div className="flex items-center gap-3">
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 border border-primary/20">
                 <Moon className="w-5 h-5 text-primary/80" />
-              </div>
+          </div>
               <div className="flex flex-col">
                 <span className="text-sm font-medium tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                   夜梦录
@@ -946,23 +946,23 @@ const Index = () => {
                     <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
                       {selectedDateRecords.map((item) => (
                         <div key={item.id} className="p-3 rounded bg-muted border border-border/50">
-                        <div className="flex justify-between items-center text-xs mb-1">
-                          <span>{item.mood}</span>
-                          <Button variant="ghost" size="sm" onClick={() => deleteHistory(item.id)} className="h-6 px-2 text-destructive">删除</Button>
-                        </div>
-                        <div className="mb-1 text-xs text-muted-foreground">梦境：{item.dream}</div>
+                          <div className="flex justify-between items-center text-xs mb-1">
+                            <span>{item.mood}</span>
+                            <Button variant="ghost" size="sm" onClick={() => deleteHistory(item.id)} className="h-6 px-2 text-destructive">删除</Button>
+                          </div>
+                          <div className="mb-1 text-xs text-muted-foreground">梦境：{item.dream}</div>
                         {item.imageUrl && (
                           <div className="mb-2 rounded overflow-hidden">
                             <img src={item.imageUrl} alt="梦境可视化" className="w-full h-auto object-cover max-h-32" />
                           </div>
                         )}
-                        <div className="mb-1 text-xs text-muted-foreground">解读：
-                          <div>{formatInterpretation(item.interpretation).sections.map((section)=> <div key={section.title}>{section.title && <b>{section.title}</b>}{section.content}</div>)}</div>
-                        </div>
+                          <div className="mb-1 text-xs text-muted-foreground">解读：
+                            <div>{formatInterpretation(item.interpretation).sections.map((section)=> <div key={section.title}>{section.title && <b>{section.title}</b>}{section.content}</div>)}</div>
+                          </div>
                         </div>
                       ))}
-                    </div>
-                  </Card>
+          </div>
+            </Card>
                 )}
               </div>
             </div>
@@ -1111,7 +1111,7 @@ const Index = () => {
                   </Button>
                 </div>
 
-                {/* 梦境描述输入区 */}
+          {/* 梦境描述输入区 */}
                 {useTemplate ? (
                   <DreamTemplate
                     onComplete={(structuredDream, fullText) => {
@@ -1129,14 +1129,14 @@ const Index = () => {
                   />
                 ) : (
                   <div className="space-y-0 relative">
-                    <Textarea
-                      value={dream}
-                      onChange={(e) => setDream(e.target.value)}
+                  <Textarea
+                    value={dream}
+                    onChange={(e) => setDream(e.target.value)}
                       onFocus={() => setIsTextareaFocused(true)}
                       onBlur={() => setIsTextareaFocused(false)}
                       className="min-h-[200px] resize-none bg-black/15 backdrop-blur-md border border-white/8 focus:border-primary/40 focus:ring-1 focus:ring-primary/20 transition-all duration-300 text-[15px] leading-relaxed font-light tracking-wide px-5 py-4 text-center relative z-10"
-                      disabled={isLoading}
-                    />
+                    disabled={isLoading}
+                  />
                     {/* 苹果风格引导提示 - 与文本框融合设计 */}
                     {!dream.trim() && !isTextareaFocused && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
@@ -1152,7 +1152,7 @@ const Index = () => {
                             <div className="relative z-10 flex items-center justify-center">
                               <Moon className="w-7 h-7 text-primary/60 animate-apple-float" style={{ animationDuration: '4s' }} />
                               <Sparkles className="w-4 h-4 text-accent/70 absolute -top-1 -right-1 animate-apple-sparkle" style={{ animationDelay: '0.5s', animationDuration: '3s' }} />
-                            </div>
+                </div>
                           </div>
 
                           {/* 文字提示 - 精致融入 */}
@@ -1167,10 +1167,10 @@ const Index = () => {
                                 }}
                               >
                                 记录梦境
-                              </span>
+                    </span>
                               {/* 文字下划线装饰 - 更微妙 */}
                               <div className="absolute -bottom-1 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent animate-apple-line"></div>
-                            </div>
+                  </div>
                             
                             {/* 副提示 - 更微妙的样式 */}
                             <div className="flex items-center gap-2 mt-1">
@@ -1179,13 +1179,13 @@ const Index = () => {
                                 轻触开始
                               </span>
                               <div className="w-1 h-1 rounded-full bg-primary/25 animate-apple-dot" style={{ animationDelay: '0.6s' }}></div>
-                            </div>
-                          </div>
+                        </div>
                         </div>
                       </div>
-                    )}
                   </div>
-                )}
+              )}
+                </div>
+          )}
 
                 {/* Submit Button - 从水底慢慢浮到水面的效果 */}
                 <div 
@@ -1218,12 +1218,12 @@ const Index = () => {
                     )}
                   </Button>
                 </div>
-              </div>
-            </div>
-          )}
+          </div>
+                        </div>
+                      )}
+                      </div>
         </div>
       </div>
-    </div>
   );
 }
 

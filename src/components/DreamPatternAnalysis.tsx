@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, TrendingUp, Link2, Sparkles, Lightbulb, ArrowRight, Calendar as CalendarIcon } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
@@ -86,115 +85,53 @@ export const DreamPatternAnalysis = ({ history }: DreamPatternAnalysisProps) => 
         sampleDream: dreamsData[0]?.dream?.substring(0, 50)
       });
 
-      const { data, error: apiError } = await supabase.functions.invoke("analyze-dream-patterns", {
-        body: { dreams: dreamsData },
+      const response = await fetch('/api/analyze-dream-patterns', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ dreams: dreamsData }),
       });
 
       console.log("API Response received:", { 
-        hasData: !!data, 
-        hasError: !!apiError,
-        dataType: typeof data,
-        errorType: typeof apiError,
-        dataKeys: data ? Object.keys(data) : null,
-        dataPreview: data ? JSON.stringify(data).substring(0, 200) : null,
-        errorDetails: apiError 
+        status: response.status,
+        ok: response.ok,
       });
 
-      // 首先处理Supabase客户端错误（网络错误、函数未找到等）
-      if (apiError) {
-        console.error("=== Supabase client error ===");
-        console.error("Error object:", apiError);
-        console.error("Error type:", typeof apiError);
-        console.error("Error keys:", typeof apiError === 'object' && apiError !== null ? Object.keys(apiError) : 'N/A');
-        
-        // 尝试提取错误消息
+      // 检查HTTP状态码
+      if (!response.ok) {
         let errorMessage = "分析服务暂时不可用，请稍后重试";
         
-        if (typeof apiError === 'object' && apiError !== null) {
-          const errorObj = apiError as any;
-          
-          // 详细记录错误对象的所有属性
-          console.error("Error object properties:", {
-            message: errorObj.message,
-            error: errorObj.error,
-            status: errorObj.status,
-            statusCode: errorObj.statusCode,
-            name: errorObj.name,
-            context: errorObj.context,
-            toString: errorObj.toString?.call(errorObj),
-          });
-          
-          // 检查常见的错误属性
-          if (errorObj.message) {
-            errorMessage = String(errorObj.message);
-          } else if (errorObj.error) {
-            errorMessage = String(errorObj.error);
-          } else if (errorObj.status === 404 || errorObj.statusCode === 404) {
-            errorMessage = "分析功能暂未配置，请确保Edge Function已部署";
-          } else if (errorObj.status || errorObj.statusCode) {
-            const status = errorObj.status || errorObj.statusCode;
-            if (status === 404) {
-              errorMessage = "分析功能暂未配置，请确保Edge Function已部署";
-            } else if (status === 500) {
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage = typeof errorData.error === 'string' ? errorData.error : String(errorData.error);
+          } else {
+            // 根据状态码提供默认错误消息
+            if (response.status === 404) {
+              errorMessage = "分析功能暂未配置，请稍后重试";
+            } else if (response.status === 500) {
               errorMessage = "服务器内部错误，请稍后重试";
             } else {
-              errorMessage = `请求失败 (状态码: ${status})`;
-            }
-          } else if (errorObj.name === 'FunctionsHttpError' || errorObj.name === 'FunctionsRelayError') {
-            // 检查HTTP状态码
-            const status = errorObj.status || errorObj.statusCode;
-            if (status === 404) {
-              errorMessage = "分析功能暂未配置，请确保Edge Function已部署";
-            } else {
-              errorMessage = "函数调用失败，请检查Edge Function是否已部署";
-            }
-          } else {
-            // 尝试序列化查看完整错误
-            try {
-              const errorStr = JSON.stringify(apiError, null, 2);
-              console.error("Full error JSON:", errorStr);
-              const lowerErrorStr = errorStr.toLowerCase();
-              
-              // 检查各种可能的错误情况 - 优先检查函数调用失败
-              if (lowerErrorStr.includes('failed to send a request to the edge function') ||
-                  lowerErrorStr.includes('failed to send') ||
-                  lowerErrorStr.includes('failed to invoke') ||
-                  lowerErrorStr.includes('not found') || 
-                  lowerErrorStr.includes('404') || 
-                  lowerErrorStr.includes('function not found')) {
-                errorMessage = "分析功能暂未配置，请确保Edge Function已部署";
-              } else if (lowerErrorStr.includes('500') || lowerErrorStr.includes('internal server error')) {
-                errorMessage = "服务器内部错误，请稍后重试";
-              } else if (lowerErrorStr.includes('timeout') || lowerErrorStr.includes('timed out')) {
-                errorMessage = "请求超时，请稍后重试";
-              } else if (lowerErrorStr.includes('failed to fetch') || lowerErrorStr.includes('network')) {
-                // 只有在明确不是函数调用失败时才显示网络错误
-                if (!lowerErrorStr.includes('edge function') && !lowerErrorStr.includes('failed to send')) {
-                  errorMessage = "无法连接到分析服务，请检查网络连接或稍后重试";
-                } else {
-                  errorMessage = "分析功能暂未配置，请确保Edge Function已部署";
-                }
-              }
-            } catch (e) {
-              console.error("Cannot stringify error:", e);
+              errorMessage = `请求失败 (状态码: ${response.status})`;
             }
           }
-        } else if (typeof apiError === 'string') {
-          errorMessage = apiError;
-          console.error("Error is string:", errorMessage);
+        } catch (e) {
+          // 如果无法解析错误响应，使用状态码
+          if (response.status === 404) {
+            errorMessage = "分析功能暂未配置，请稍后重试";
+          } else if (response.status === 500) {
+            errorMessage = "服务器内部错误，请稍后重试";
+          }
         }
         
-        console.error("Extracted error message:", errorMessage);
         throw new Error(errorMessage);
       }
 
-      // 检查返回的数据
-      if (!data) {
-        console.error("No data returned from function");
-        throw new Error("分析服务返回空数据，请稍后重试");
-      }
+      // 解析响应数据
+      const data = await response.json();
 
-      // 检查数据中是否有error字段（Edge Function返回的业务错误）
+      // 检查数据中是否有error字段（业务错误）
       if (data && typeof data === 'object' && 'error' in data && data.error) {
         console.log("Function returned error:", data.error);
         const errorMsg = typeof data.error === 'string' ? data.error : String(data.error);
@@ -252,22 +189,14 @@ export const DreamPatternAnalysis = ({ history }: DreamPatternAnalysisProps) => 
       
       console.log("Processing error message:", { original: message, lower: lowerMessage });
       
-      // 优先检查是否是函数调用失败或未部署的错误 - 最高优先级
-      // "Failed to send a request to the Edge Function" 通常意味着函数未部署或配置错误
-      if (lowerMessage.includes("failed to send a request to the edge function") ||
-          lowerMessage.includes("failed to send") ||
-          lowerMessage.includes("failed to invoke") ||
-          lowerMessage.includes("edge function") ||
-          lowerMessage.includes("404") || 
+      // 优先检查是否是404错误（API未找到）
+      if (lowerMessage.includes("404") || 
           lowerMessage.includes("not found") ||
-          (lowerMessage.includes("function") && lowerMessage.includes("not found")) ||
-          lowerMessage.includes("function not found") ||
-          lowerMessage.includes("could not find") ||
-          lowerMessage.includes("不存在") ||
+          lowerMessage.includes("暂未配置") ||
           lowerMessage.includes("无法找到") ||
           lowerMessage.includes("未找到")) {
-        friendlyMessage = "分析功能暂未配置，请确保Edge Function已部署";
-        console.log("✅ Detected function not found/not deployed error");
+        friendlyMessage = "分析功能暂未配置，请稍后重试";
+        console.log("✅ Detected 404 error");
       } 
       // 检查是否是服务器错误（500）
       else if (lowerMessage.includes("500") || 
@@ -365,19 +294,15 @@ export const DreamPatternAnalysis = ({ history }: DreamPatternAnalysisProps) => 
           <p className="text-sm mb-2 font-medium">{error}</p>
           {isDeploymentError && (
             <div className="mt-4 p-4 bg-muted/50 rounded-lg text-xs text-left max-w-md mx-auto space-y-3">
-              <p className="font-semibold mb-2 text-foreground">📋 部署步骤：</p>
-              <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-                <li>访问 <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Supabase Dashboard</a></li>
-                <li>选择项目（project_id: ypvngooxhywipuzqpiev）</li>
-                <li>进入 <strong>Edge Functions</strong> 页面</li>
-                <li>创建新函数，名称为：<code className="bg-background px-1 rounded">analyze-dream-patterns</code></li>
-                <li>复制 <code className="bg-background px-1 rounded">supabase/functions/analyze-dream-patterns/index.ts</code> 的内容</li>
-                <li>设置环境变量：<code className="bg-background px-1 rounded">OPENROUTER_API_KEY</code></li>
-                <li>点击 <strong>Deploy</strong> 部署</li>
-              </ol>
-              <p className="text-muted-foreground mt-3 pt-3 border-t border-border/50">
-                💡 详细说明请查看项目根目录的 <code className="bg-background px-1 rounded">DEPLOYMENT.md</code> 文件
+              <p className="font-semibold mb-2 text-foreground">💡 提示：</p>
+              <p className="text-muted-foreground">
+                如果这是第一次部署，请确保：
               </p>
+              <ol className="list-decimal list-inside space-y-2 text-muted-foreground mt-2">
+                <li>已在 Vercel 部署项目</li>
+                <li>已在 Vercel 设置环境变量 <code className="bg-background px-1 rounded">OPENROUTER_API_KEY</code></li>
+                <li>重新部署后功能将自动生效</li>
+              </ol>
             </div>
           )}
           {history.length >= 2 && (
